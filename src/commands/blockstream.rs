@@ -18,6 +18,7 @@ use std::sync::atomic::*;
 use std::{num, sync::Arc};
 use tokio::task::JoinHandle;
 
+
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
 const ARBSCANKEY: &str = dotenv!("ARBSCAN");
@@ -159,7 +160,7 @@ pub async fn blockstream(
                     continue 'streamloop;
                 }
             };
-            println!("{}", numberblock);
+            //println!("{}", numberblock);
             // Getting the block
             let blockresultoption = &client.get_block_with_txs(numberblock).await;
 
@@ -194,7 +195,7 @@ pub async fn blockstream(
             };
 
             // Staying alive
-            if numberblock % 1000 == 0.into() {
+            if numberblock % 10 == 0.into() {
                 channel
                     .say(ctx2.http(), format!("At block = {}", numberblock))
                     .await?;
@@ -204,12 +205,17 @@ pub async fn blockstream(
                     Activity::watching(status),
                 )
                 .await;
+
+                let tempblock = provider.get_block_number().await?;
+
+                if tempblock > (numberblock + 50) {
+                    continue 'mainloop;
+                }
             }
             // println!("{}", numberblock);
             let vectx101 = &block2.transactions;
             for tx in vectx101 {
                 if tx.to.is_some() {
-                    //println!("at 195");
                     // This unwrap should be safe as we check above that the tx.to is some()
                     for receiver in tx.to {
                         if veccontracts.contains(&receiver) {
@@ -224,7 +230,6 @@ pub async fn blockstream(
                             if let Some(logouri) =
                                 token.iter().find(|p| p.symbol.to_lowercase() == "aopenx")
                             {
-                                //println!("Found person with name {}: {:?}", name, logouri);
                                 if logouri.logo_uri.is_some() {
                                     url = logouri.logo_uri.clone().unwrap();
                                 }

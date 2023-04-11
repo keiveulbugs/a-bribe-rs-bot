@@ -1,6 +1,5 @@
 mod commands;
 use poise::serenity_prelude::{self as serenity};
-use rusqlite::Connection;
 use rust_embed::RustEmbed;
 use std::sync::atomic::*;
 
@@ -80,14 +79,12 @@ async fn main() {
         .intents(serenity::GatewayIntents::GUILDS | serenity::GatewayIntents::GUILD_MEMBERS)
         .options(poise::FrameworkOptions {
             commands: vec![
-                // Do not remove the help command,
-                // it uses that line to place in new commands at the right position.
-                // Might change this in the future, but am lazy and this was the easiest.
                 commands::stop::stop(),
                 commands::contract_update::contract_update(),
                 commands::blockstream::blockstream(),
                 // commands::bribestream::bribestream(),
                 commands::help::help(),
+                commands::getjson::getjson(),
             ],
             ..Default::default()
         })
