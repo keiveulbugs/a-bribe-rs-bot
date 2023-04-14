@@ -83,6 +83,7 @@ pub async fn blockstream(
         .map_err(|_| "Was not succesful in starting the command!")?;
     STOPBOOL.swap(false, Ordering::Relaxed);
     UPDATEBOOL.swap(true, Ordering::Relaxed);
+    let bribevoter = "0x98a1de08715800801e9764349f5a71cbe63f99cc".parse::<Address>()?;
 
     let logofile =
         Asset::get("json_files/arbi-list.json").expect("Could not open json file with logos!");
@@ -195,19 +196,19 @@ pub async fn blockstream(
             };
 
             // Staying alive
-            if numberblock % 10 == 0.into() {
-                channel
-                    .say(ctx2.http(), format!("At block = {}", numberblock))
-                    .await?;
+            if numberblock % 1000 == 0.into() {
+                // channel
+                //     .say(ctx2.http(), format!("At block = {}", numberblock))
+                //     .await?;
                 let status = format!("block {}", numberblock);
                 poise::serenity_prelude::Context::set_activity(
                     ctx2.serenity_context(),
                     Activity::watching(status),
                 )
                 .await;
-
+                
+                // This restarts the websocket if there is too much of a delay
                 let tempblock = provider.get_block_number().await?;
-
                 if tempblock > (numberblock + 50) {
                     continue 'mainloop;
                 }
@@ -219,9 +220,21 @@ pub async fn blockstream(
                     // This unwrap should be safe as we check above that the tx.to is some()
                     for receiver in tx.to {
                         if veccontracts.contains(&receiver) {
-                            channel
-                                .say(ctx2.http(), format!("Interaction: {:?}", receiver))
-                                .await?;
+                           // let txval :Address = "0x9175fa90bea50873e004f42f4cf1e27ad3b5e64f34f8d74400ca34411d629710".parse()?;
+                           // let fed = arbscanclient.get_transactions(&txval, None).await?;
+                            // for ts in fed {
+                            //     let functionname = ts.function_name.unwrap();
+                            //     println!("{}", functionname);
+                            // }
+                            // let trace =  provider.trace_transaction(tx.hash).await?;
+                            // for t in trace {
+                            //     println!("{:#?}", t);
+                            // }
+
+
+                            // channel
+                            //     .say(ctx2.http(), format!("Interaction: {:?}", receiver))
+                            //     .await?;
                             let input = tx.clone().input;
                             let briber = tx.from;
 
@@ -234,18 +247,18 @@ pub async fn blockstream(
                                     url = logouri.logo_uri.clone().unwrap();
                                 }
                             };
-
+                            
                             channel
                                     .send_message(ctx2.http(), |b| {
                                         b.embed(|b| {
                                             b.title("Transaction on Arbiscan")
                                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx.hash))
-                                                .field("Pool", format!("> {:x}", receiver), false)
-                                                .field("From", format!("> {:x}", tx.from), false)
+                                                .field("Pool", format!("> 0x{:x}", receiver), false)
+                                                .field("From", format!("> 0x{:x}", tx.from), false)
                                                 .timestamp(ctx.created_at())
                                                // .image(url.to_string())
-                                                .thumbnail(url.to_string())
-                                                .thumbnail(url.to_string())
+                                                // .thumbnail(url.to_string())
+                                                // .thumbnail(url.to_string())
                                                 .footer(|f| {
                                                     f.text(format!("Sliz productions")).icon_url(
                                                         "https://solidlizard.finance/images/ui/lz-logo.png",
@@ -255,6 +268,39 @@ pub async fn blockstream(
                                     })
                                     .await?;
                         }
+//                         if receiver == bribevoter {
+//                             let filterbribe = Filter::new()
+//                                 .address(bribevoter)
+//                                 .at_block_hash(block.hash.unwrap())
+//                                 .event("notifyRewardAmount(address indexed from, address indexed to, uint256 value)")
+//                                 .event("distribute()")
+//                                 .event("distributeAll()");
+//                             let logs = client.get_logs(&filterbribe).await?;
+
+
+
+
+//                             channel
+//                                     .send_message(ctx2.http(), |b| {
+//                                         b.embed(|b| {
+//                                             b.title("Transaction on Arbiscan")
+//                                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx.hash))
+//                                                 .description("A Bribe from the Solid Lizzard Finance voter appeared.")
+//                                                 .field("Pool", format!("> {:x}", receiver), false)
+//                                                 .field("From", format!("> {:x}", tx.from), false)
+//                                                 .timestamp(ctx.created_at())
+//                                                // .image(url.to_string())
+//  //                                               .thumbnail(url.to_string())
+//                                                 // .thumbnail(url.to_string())
+//                                                 .footer(|f| {
+//                                                     f.text(format!("Sliz productions")).icon_url(
+//                                                         "https://solidlizard.finance/images/ui/lz-logo.png",
+//                                                     )
+//                                                 })
+//                                         })
+//                                     })
+//                                     .await?;
+//                         }
                     }
                 }
             }

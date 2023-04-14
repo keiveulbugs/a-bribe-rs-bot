@@ -85,6 +85,7 @@ async fn main() {
                 // commands::bribestream::bribestream(),
                 commands::help::help(),
                 commands::getjson::getjson(),
+                commands::bribewatch::bribewatch(),
             ],
             ..Default::default()
         })
