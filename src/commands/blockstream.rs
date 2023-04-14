@@ -1,22 +1,21 @@
 use crate::{Error, STOPBOOL, UPDATEBOOL};
-use ethers::types::H160;
+
 use ethers::{
-    core::abi::AbiDecode,
-    prelude::{abigen, Abigen},
+    prelude::{abigen},
     providers::{Middleware, Provider, StreamExt, Ws},
-    types::{Address, BlockNumber, Chain, Filter, U256},
+    types::{Address, Chain},
 };
 use ethers_etherscan::account::InternalTxQueryOption;
 use poise::serenity_prelude::Activity;
-use poise::serenity_prelude::{self as serenit, CacheHttp, ChannelId};
+use poise::serenity_prelude::{CacheHttp, ChannelId};
 use rust_embed::RustEmbed;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use serenity::utils::Colour;
-use std::str::FromStr;
+
+
 use std::sync::atomic::*;
-use std::{num, sync::Arc};
-use tokio::task::JoinHandle;
+use std::{sync::Arc};
+
 
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
@@ -78,7 +77,7 @@ pub async fn blockstream(
         .map_err(|_| "Was not succesful in starting the command!")?;
     STOPBOOL.swap(false, Ordering::Relaxed);
     UPDATEBOOL.swap(true, Ordering::Relaxed);
-    let bribevoter = "0x98a1de08715800801e9764349f5a71cbe63f99cc".parse::<Address>()?;
+    let _bribevoter = "0x98a1de08715800801e9764349f5a71cbe63f99cc".parse::<Address>()?;
 
     let logofile =
         Asset::get("json_files/arbi-list.json").expect("Could not open json file with logos!");
@@ -98,7 +97,7 @@ pub async fn blockstream(
 
     let mut errorcount: u32 = 0;
 
-    let ctx2 = ctx.clone();
+    let ctx2 = ctx;
 
     'mainloop: loop {
         let provider =
@@ -136,7 +135,7 @@ pub async fn blockstream(
                 for tx in internaltxvec {
                     if tx.result_type == "create" && tx.contract_address.value().is_some() {
                         let ad = tx.contract_address.value().unwrap();
-                        veccontracts.push(ad.clone());
+                        veccontracts.push(*ad);
                         count += 1;
                     }
                 }
@@ -145,9 +144,7 @@ pub async fn blockstream(
                     .await?;
             }
             // Reduce error count if the bot works properly to avoid one offs.
-            if errorcount > 0 {
-                errorcount -= 1;
-            }
+            errorcount = errorcount.saturating_sub(1);
             // Getting the blocknumber
             let numberblockresult = block.number;
             let numberblock = match numberblockresult {
@@ -229,8 +226,8 @@ pub async fn blockstream(
                             // channel
                             //     .say(ctx2.http(), format!("Interaction: {:?}", receiver))
                             //     .await?;
-                            let input = tx.clone().input;
-                            let briber = tx.from;
+                            let _input = tx.clone().input;
+                            let _briber = tx.from;
 
                             let mut url =
                                 "https://solidlizard.finance/images/ui/lz-logo.png".to_string();
@@ -254,7 +251,7 @@ pub async fn blockstream(
                                                 // .thumbnail(url.to_string())
                                                 // .thumbnail(url.to_string())
                                                 .footer(|f| {
-                                                    f.text(format!("Sliz productions")).icon_url(
+                                                    f.text("Sliz productions".to_string()).icon_url(
                                                         "https://solidlizard.finance/images/ui/lz-logo.png",
                                                     )
                                                 })

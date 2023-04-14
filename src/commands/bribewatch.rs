@@ -70,7 +70,7 @@ pub async fn bribewatch(
         for tx in internaltxvec {
             if tx.result_type == "create" && tx.contract_address.value().is_some() {
                 let ad = tx.contract_address.value().unwrap();
-                veccontracts.push(ad.clone());
+                veccontracts.push(*ad);
                 count += 1;
             }
         }
@@ -123,7 +123,7 @@ pub async fn bribewatch(
             let tx = log.transaction_hash.unwrap();
 
             let mut readableamount = format_units(amount, "ether")?;
-            let splitting = readableamount.find(".").unwrap() + 3;
+            let splitting = readableamount.find('.').unwrap() + 3;
             readableamount.truncate(splitting);
 
             if let Some(tokenname) = token
@@ -137,14 +137,14 @@ pub async fn bribewatch(
                 channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
-                            b.title(format!("New Bribe!"))
+                            b.title("New Bribe!".to_string())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", format!("0x{:x}", fromaddress), false)
                                 .field("Token", tokenname.name.clone(), false)
                                 .field("Amount", readableamount, false)
                                 .thumbnail(imageurl)
                                 .footer(|f| {
-                                    f.text(format!("Sliz productions")).icon_url(
+                                    f.text("Sliz productions".to_string()).icon_url(
                                         "https://solidlizard.finance/images/ui/lz-logo.png",
                                     )
                                 })
@@ -156,13 +156,13 @@ pub async fn bribewatch(
                 channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
-                            b.title(format!("New Bribe!"))
+                            b.title("New Bribe!".to_string())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", format!("0x{:x}", fromaddress), false)
                                 .field("Token", erctoken, false)
                                 .field("Amount", readableamount, false)
                                 .footer(|f| {
-                                    f.text(format!("Sliz productions")).icon_url(
+                                    f.text("Sliz productions".to_string()).icon_url(
                                         "https://solidlizard.finance/images/ui/lz-logo.png",
                                     )
                                 })
