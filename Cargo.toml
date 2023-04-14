@@ -21,6 +21,7 @@ rust-embed = "6.6.1"
 ureq = { version = "2.6.1", features = ["json", "charset"] }
 ethers-etherscan = "2.0.2"
 image = "0.24.6"
+chrono = "0.4.24"
 [target.'cfg(unix)'.dependencies]
 openssl = { version = "0.10.45", features = ["vendored"] }
 
