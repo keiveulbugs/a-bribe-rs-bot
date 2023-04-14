@@ -81,10 +81,8 @@ async fn main() {
             commands: vec![
                 commands::stop::stop(),
                 commands::contract_update::contract_update(),
-                commands::blockstream::blockstream(),
-                // commands::bribestream::bribestream(),
+                // commands::blockstream::blockstream(),
                 commands::help::help(),
-                commands::getjson::getjson(),
                 commands::bribewatch::bribewatch(),
             ],
             ..Default::default()

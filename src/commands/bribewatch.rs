@@ -1,35 +1,20 @@
 use crate::{Error, STOPBOOL, UPDATEBOOL};
-use ethers::types::H160;
+use chrono::{prelude::Utc, DateTime};
 use ethers::{
     core::abi::AbiDecode,
-    prelude::{abigen, Abigen},
-    providers::{Middleware, Provider, StreamExt, Ws, Http},
-    types::{Address, BlockNumber, Chain, Filter, U256, H256},
+    providers::{Http, Middleware, Provider},
+    types::{Address, Chain, Filter, H160, H256, U256},
+    utils::format_units,
 };
 use ethers_etherscan::account::InternalTxQueryOption;
-use poise::serenity_prelude::Activity;
-use poise::serenity_prelude::{self as serenit, CacheHttp, ChannelId};
-use rust_embed::RustEmbed;
+use poise::serenity_prelude::{Activity, CacheHttp, ChannelId};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use serenity::utils::Colour;
-use std::str::FromStr;
-use std::{num, sync::Arc};
-use tokio::task::JoinHandle;
 use std::sync::atomic::Ordering::Relaxed;
-use ethers::utils::format_units;
-use chrono::prelude::Utc;
-use chrono::DateTime;
-
+use std::sync::Arc;
 
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
-const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
 const ARBSCANKEY: &str = dotenv!("ARBSCAN");
-
-
-
-
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Logos {
@@ -53,8 +38,6 @@ pub struct Token {
     pub listed_in: Vec<String>,
 }
 
-
-
 // Command that starts watching all blocks for contract interaction
 #[poise::command(slash_command)]
 pub async fn bribewatch(
@@ -62,14 +45,12 @@ pub async fn bribewatch(
     #[description = "Channel to post updates"] channel: ChannelId,
 ) -> Result<(), Error> {
     ctx.say("yihaaa").await?;
+    let response =
+        reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
+            .await?;
+    let jsontoken: Logos = response.json().await?;
 
-    let response = reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json").await?;
-    let jsontoken :Logos = response.json().await?;
-    let token = jsontoken.tokens;
-
-
-
-
+    let mut token = jsontoken.tokens;
 
     // let provider = Provider::<Ws>::connect(format!("wss://arb-mainnet.g.alchemy.com/v2/{}", ALCHEMYKEY))
     // .await
@@ -78,8 +59,7 @@ pub async fn bribewatch(
     let client = Arc::new(&provider);
     let mut veccontracts = vec![];
     let address: Address = BRIBEFACTORY.parse()?;
-    let arbscanclient =
-        ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
+    let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
     if UPDATEBOOL.load(Relaxed) {
         UPDATEBOOL.swap(false, Relaxed);
@@ -94,6 +74,12 @@ pub async fn bribewatch(
                 count += 1;
             }
         }
+        let response =
+            reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
+                .await?;
+        let jsontoken: Logos = response.json().await?;
+        token = jsontoken.tokens;
+
         ctx.channel_id()
             .say(ctx, format!("*Found {} contracts to watch!*", count))
             .await?;
@@ -105,24 +91,27 @@ pub async fn bribewatch(
             channel.say(ctx.http(), "The bribebot is stopped!").await?;
             break 'mainloop;
         }
-    let currenttime = tokio::time::Instant::now();
-    //let timeinu64 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs() + 500;
-    let utc: DateTime<Utc> = Utc::now();// + chrono::Duration::seconds(300);
-    let currentblock = provider.get_block_number().await?;
-    let status = format!("block {}", currentblock);
-    poise::serenity_prelude::Context::set_activity(
-        ctx.serenity_context(),
-        Activity::watching(status),
-    )
-    .await;
-    let filter = Filter::new()
-        //.to_block(currentblock)
-        .to_block(65886514)
-        .from_block(65886512)
-        //.from_block(lastblock)
-        .topic0("0xf70d5c697de7ea828df48e5c4573cb2194c659f1901f70110c52b066dcf50826".parse::<H256>()?)
-        .address(veccontracts.clone())
-        .address("0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?);
+        let currenttime = tokio::time::Instant::now();
+        //let timeinu64 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs() + 500;
+        let utc: DateTime<Utc> = Utc::now(); // + chrono::Duration::seconds(300);
+        let currentblock = provider.get_block_number().await?;
+        let status = format!("block {}", currentblock);
+        poise::serenity_prelude::Context::set_activity(
+            ctx.serenity_context(),
+            Activity::watching(status),
+        )
+        .await;
+        let filter = Filter::new()
+            //.to_block(currentblock)
+            .to_block(65886514)
+            .from_block(65886512)
+            //.from_block(lastblock)
+            .topic0(
+                "0xf70d5c697de7ea828df48e5c4573cb2194c659f1901f70110c52b066dcf50826"
+                    .parse::<H256>()?,
+            )
+            .address(veccontracts.clone())
+            .address("0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?);
 
         let logs = client.get_logs(&filter).await?;
         println!("{} transactions found!", logs.iter().len());
@@ -132,58 +121,62 @@ pub async fn bribewatch(
             let fromaddress = Address::from(log.topics[1]);
             let amount = U256::decode(log.data)?;
             let tx = log.transaction_hash.unwrap();
-            
+
             let mut readableamount = format_units(amount, "ether")?;
             let splitting = readableamount.find(".").unwrap() + 3;
             readableamount.truncate(splitting);
 
-            if let Some(tokenname) = token.iter().find(|p| p.address.to_lowercase() == format!("0x{:x}", erctoken)) {
-                let imageurl = tokenname.logo_uri.clone().ok_or("https://solidlizard.finance/images/ui/lz-logo.png".to_string())?;
-                channel.send_message(ctx.http(), |a| {
-                    a.embed(|b| {
-                        b.title(format!("New Bribe!"))
-                        .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                        .field("Bribe creator", format!("0x{:x}", fromaddress), false)
-                        .field("Token", tokenname.name.clone(), false)
-                        .field("Amount", readableamount, false)
-                        .thumbnail(imageurl)
-                        .footer(|f| {
-                            f.text(format!("Sliz productions")).icon_url(
-                                "https://solidlizard.finance/images/ui/lz-logo.png",
-                            )
+            if let Some(tokenname) = token
+                .iter()
+                .find(|p| p.address.to_lowercase() == format!("0x{:x}", erctoken))
+            {
+                let imageurl = tokenname
+                    .logo_uri
+                    .clone()
+                    .ok_or("https://solidlizard.finance/images/ui/lz-logo.png".to_string())?;
+                channel
+                    .send_message(ctx.http(), |a| {
+                        a.embed(|b| {
+                            b.title(format!("New Bribe!"))
+                                .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
+                                .field("Bribe creator", format!("0x{:x}", fromaddress), false)
+                                .field("Token", tokenname.name.clone(), false)
+                                .field("Amount", readableamount, false)
+                                .thumbnail(imageurl)
+                                .footer(|f| {
+                                    f.text(format!("Sliz productions")).icon_url(
+                                        "https://solidlizard.finance/images/ui/lz-logo.png",
+                                    )
+                                })
+                                .timestamp(utc)
                         })
-                        .timestamp(utc)
-                })
-                }).await?;
+                    })
+                    .await?;
             } else {
-                channel.send_message(ctx.http(), |a| {
-                    a.embed(|b| {
-                        b.title(format!("New Bribe!"))
-                        .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                        .field("Bribe creator", format!("0x{:x}", fromaddress), false)
-                        .field("Token", erctoken, false)
-                        .field("Amount", readableamount, false)
-                        .footer(|f| {
-                            f.text(format!("Sliz productions")).icon_url(
-                                "https://solidlizard.finance/images/ui/lz-logo.png",
-                            )
+                channel
+                    .send_message(ctx.http(), |a| {
+                        a.embed(|b| {
+                            b.title(format!("New Bribe!"))
+                                .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
+                                .field("Bribe creator", format!("0x{:x}", fromaddress), false)
+                                .field("Token", erctoken, false)
+                                .field("Amount", readableamount, false)
+                                .footer(|f| {
+                                    f.text(format!("Sliz productions")).icon_url(
+                                        "https://solidlizard.finance/images/ui/lz-logo.png",
+                                    )
+                                })
+                                .timestamp(utc)
                         })
-                        //.timestamp(timestamp)
-                })
-                }).await?;
+                    })
+                    .await?;
             }
 
-            tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;            
+            tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
         }
         lastblock = currentblock;
         tokio::time::sleep_until(currenttime + tokio::time::Duration::from_secs(300)).await;
     }
-    
+
     Ok(())
 }
-
-// if let Some(logouri) = token.iter().find(|p| p.name == name) {
-//     println!("Found person with name {}: {:?}", name, logouri);
-// } else {
-//     println!("No person found with name");
-// }

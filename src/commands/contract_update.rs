@@ -1,7 +1,7 @@
-use crate::{Error,  UPDATEBOOL};
+use crate::{Error, UPDATEBOOL};
 use std::sync::atomic::Ordering;
 
-// This command swaps an atomic bool to true. 
+// This command swaps an atomic bool to true.
 // When the blockstream command fetches a new block and this bool is set to true, it updates the contracts.
 #[poise::command(slash_command)]
 pub async fn contract_update(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {

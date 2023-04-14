@@ -18,14 +18,9 @@ use std::sync::atomic::*;
 use std::{num, sync::Arc};
 use tokio::task::JoinHandle;
 
-
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
 const ARBSCANKEY: &str = dotenv!("ARBSCAN");
-
-
-
-
 
 #[derive(RustEmbed)]
 #[folder = "src/commands/jsonfiles"]
@@ -94,8 +89,7 @@ pub async fn blockstream(
     let token = logojson.tokens;
 
     let address: Address = BRIBEFACTORY.parse()?;
-    let arbscanclient =
-        ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
+    let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
     let mut veccontracts = vec![];
 
     ctx.send(|c| c.content("Starting to watch the blocks!").ephemeral(true))
@@ -107,9 +101,10 @@ pub async fn blockstream(
     let ctx2 = ctx.clone();
 
     'mainloop: loop {
-        let provider = Provider::<Ws>::connect(format!("wss://arb-mainnet.g.alchemy.com/v2/{}", ALCHEMYKEY))
-            .await
-            .map_err(|wserr| format!("Couldn't connect to the Alchemy websocket! {}", wserr))?;
+        let provider =
+            Provider::<Ws>::connect(format!("wss://arb-mainnet.g.alchemy.com/v2/{}", ALCHEMYKEY))
+                .await
+                .map_err(|wserr| format!("Couldn't connect to the Alchemy websocket! {}", wserr))?;
         let client = Arc::new(&provider);
         let mut streaming = provider
             .subscribe_blocks()
@@ -206,7 +201,7 @@ pub async fn blockstream(
                     Activity::watching(status),
                 )
                 .await;
-                
+
                 // This restarts the websocket if there is too much of a delay
                 let tempblock = provider.get_block_number().await?;
                 if tempblock > (numberblock + 50) {
@@ -220,8 +215,8 @@ pub async fn blockstream(
                     // This unwrap should be safe as we check above that the tx.to is some()
                     for receiver in tx.to {
                         if veccontracts.contains(&receiver) {
-                           // let txval :Address = "0x9175fa90bea50873e004f42f4cf1e27ad3b5e64f34f8d74400ca34411d629710".parse()?;
-                           // let fed = arbscanclient.get_transactions(&txval, None).await?;
+                            // let txval :Address = "0x9175fa90bea50873e004f42f4cf1e27ad3b5e64f34f8d74400ca34411d629710".parse()?;
+                            // let fed = arbscanclient.get_transactions(&txval, None).await?;
                             // for ts in fed {
                             //     let functionname = ts.function_name.unwrap();
                             //     println!("{}", functionname);
@@ -230,7 +225,6 @@ pub async fn blockstream(
                             // for t in trace {
                             //     println!("{:#?}", t);
                             // }
-
 
                             // channel
                             //     .say(ctx2.http(), format!("Interaction: {:?}", receiver))
@@ -247,7 +241,7 @@ pub async fn blockstream(
                                     url = logouri.logo_uri.clone().unwrap();
                                 }
                             };
-                            
+
                             channel
                                     .send_message(ctx2.http(), |b| {
                                         b.embed(|b| {
@@ -268,39 +262,36 @@ pub async fn blockstream(
                                     })
                                     .await?;
                         }
-//                         if receiver == bribevoter {
-//                             let filterbribe = Filter::new()
-//                                 .address(bribevoter)
-//                                 .at_block_hash(block.hash.unwrap())
-//                                 .event("notifyRewardAmount(address indexed from, address indexed to, uint256 value)")
-//                                 .event("distribute()")
-//                                 .event("distributeAll()");
-//                             let logs = client.get_logs(&filterbribe).await?;
+                        //                         if receiver == bribevoter {
+                        //                             let filterbribe = Filter::new()
+                        //                                 .address(bribevoter)
+                        //                                 .at_block_hash(block.hash.unwrap())
+                        //                                 .event("notifyRewardAmount(address indexed from, address indexed to, uint256 value)")
+                        //                                 .event("distribute()")
+                        //                                 .event("distributeAll()");
+                        //                             let logs = client.get_logs(&filterbribe).await?;
 
-
-
-
-//                             channel
-//                                     .send_message(ctx2.http(), |b| {
-//                                         b.embed(|b| {
-//                                             b.title("Transaction on Arbiscan")
-//                                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx.hash))
-//                                                 .description("A Bribe from the Solid Lizzard Finance voter appeared.")
-//                                                 .field("Pool", format!("> {:x}", receiver), false)
-//                                                 .field("From", format!("> {:x}", tx.from), false)
-//                                                 .timestamp(ctx.created_at())
-//                                                // .image(url.to_string())
-//  //                                               .thumbnail(url.to_string())
-//                                                 // .thumbnail(url.to_string())
-//                                                 .footer(|f| {
-//                                                     f.text(format!("Sliz productions")).icon_url(
-//                                                         "https://solidlizard.finance/images/ui/lz-logo.png",
-//                                                     )
-//                                                 })
-//                                         })
-//                                     })
-//                                     .await?;
-//                         }
+                        //                             channel
+                        //                                     .send_message(ctx2.http(), |b| {
+                        //                                         b.embed(|b| {
+                        //                                             b.title("Transaction on Arbiscan")
+                        //                                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx.hash))
+                        //                                                 .description("A Bribe from the Solid Lizzard Finance voter appeared.")
+                        //                                                 .field("Pool", format!("> {:x}", receiver), false)
+                        //                                                 .field("From", format!("> {:x}", tx.from), false)
+                        //                                                 .timestamp(ctx.created_at())
+                        //                                                // .image(url.to_string())
+                        //  //                                               .thumbnail(url.to_string())
+                        //                                                 // .thumbnail(url.to_string())
+                        //                                                 .footer(|f| {
+                        //                                                     f.text(format!("Sliz productions")).icon_url(
+                        //                                                         "https://solidlizard.finance/images/ui/lz-logo.png",
+                        //                                                     )
+                        //                                                 })
+                        //                                         })
+                        //                                     })
+                        //                                     .await?;
+                        //                         }
                     }
                 }
             }
