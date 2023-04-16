@@ -2,7 +2,7 @@ use crate::Error;
 use poise::serenity_prelude::UserId;
 use serenity::{model::application::component::ButtonStyle, utils::Colour};
 // Help command
-#[poise::command(slash_command)]
+#[poise::command(slash_command, guild_only = true)]
 pub async fn help(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {
     ctx.send(|b| {
         b.embed(|b| {

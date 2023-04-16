@@ -21,7 +21,7 @@ extern crate dotenv_codegen;
 // Your Bot token
 const DISCORD_TOKEN: &str = dotenv!("DISCORD_TOKEN");
 // If you want to have commands specific to only a specific guild, set this as your guild_id.
-const PRIVATEGUILDID: serenity::GuildId = serenity::GuildId(1234567891234567891);
+const PRIVATEGUILDID: serenity::GuildId = serenity::GuildId(1052280052496216155);
 
 async fn on_ready(
     ctx: &serenity::Context,
@@ -70,7 +70,6 @@ async fn on_ready(
     Ok(())
 }
 
-#[allow(unused_doc_comments)]
 #[tokio::main]
 async fn main() {
     // Build our client.
