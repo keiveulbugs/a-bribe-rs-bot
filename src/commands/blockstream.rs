@@ -1,7 +1,7 @@
 use crate::{Error, STOPBOOL, UPDATEBOOL};
 
 use ethers::{
-    prelude::{abigen},
+    prelude::abigen,
     providers::{Middleware, Provider, StreamExt, Ws},
     types::{Address, Chain},
 };
@@ -12,10 +12,8 @@ use rust_embed::RustEmbed;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
-
 use std::sync::atomic::*;
-use std::{sync::Arc};
-
+use std::sync::Arc;
 
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ALCHEMYKEY: &str = dotenv!("ALCHEMY");

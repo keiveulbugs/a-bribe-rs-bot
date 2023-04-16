@@ -1,18 +1,18 @@
 use crate::{Error, STOPBOOL, UPDATEBOOL};
 use chrono::{prelude::Utc, DateTime, TimeZone};
 use ethers::{
-    core::{abi::AbiDecode, types::Bytes},
-    providers::{Http, Middleware, Provider, Ws},
+    contract::abigen,
+    core::abi::AbiDecode,
+    providers::{Http, Middleware, Provider},
     types::{Address, Chain, Filter, H160, H256, U256},
     utils::format_units,
-    contract::abigen,
 };
 use ethers_etherscan::account::InternalTxQueryOption;
 use poise::serenity_prelude::{Activity, CacheHttp, ChannelId, UserId};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::{sync::atomic::Ordering::Relaxed, collections::HashMap};
 use std::sync::Arc;
+use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
 
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ARBSCANKEY: &str = dotenv!("ARBSCAN");
@@ -54,13 +54,12 @@ pub struct Token {
     pub listed_in: Vec<String>,
 }
 
-pub struct  Pool {
-    pub caddress :Address,
-    pub cname :String,
+pub struct Pool {
+    pub caddress: Address,
+    pub cname: String,
 }
 
 const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
-
 
 // Command that starts watching all blocks for contract interaction
 #[poise::command(slash_command, guild_only = true)]
@@ -68,15 +67,19 @@ pub async fn bribewatch(
     ctx: poise::Context<'_, (), Error>,
     #[description = "Channel to post updates"] channel: ChannelId,
 ) -> Result<(), Error> {
-
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
-    if !rolesofuser.unwrap().administrator() && ctx.author().id != UserId(397118394714816513){
+    if !rolesofuser.unwrap().administrator() && ctx.author().id != UserId(397118394714816513) {
         return Ok(());
     }
-    ctx.say(format!("Starting the bot, check <#{}> for more info!", channel)).await?;
+    ctx.say(format!(
+        "Starting the bot, check <#{}> for more info!",
+        channel
+    ))
+    .await?;
 
-    
-    let mut messagehandle = channel.send_message(ctx.http(), |b| {b.content("Starting setup!")}).await?;
+    let mut messagehandle = channel
+        .send_message(ctx.http(), |b| b.content("Starting setup!"))
+        .await?;
     let response =
         reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
             .await?;
@@ -93,7 +96,7 @@ pub async fn bribewatch(
     let address: Address = BRIBEFACTORY.parse()?;
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
-    let mut hashmapofpools :HashMap<H160, String>= std::collections::HashMap::new();
+    let mut hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
 
     if UPDATEBOOL.load(Relaxed) {
         UPDATEBOOL.swap(false, Relaxed);
@@ -111,29 +114,36 @@ pub async fn bribewatch(
                 let input = trans.input;
                 let call = match CreateGaugeCall::decode(&input) {
                     Ok(val) => val,
-                    Err(_) => {continue 'tx;}
+                    Err(_) => {
+                        continue 'tx;
+                    }
                 };
-                
-                let pool :Address = call.pool;
 
-        
+                let pool: Address = call.pool;
+
                 //let contract = IERC20::new(address, client);
                 let contract = PoolContract::new(pool, client.clone());
                 let name = match contract.name().call().await {
                     Ok(val) => val,
-                    Err(_) => "A new Bribe occurred!".to_string()
+                    Err(_) => "A new Bribe occurred!".to_string(),
                 };
-                
 
                 hashmapofpools.insert(*ad, name);
                 count += 1;
                 if count % 10 == 0 {
-                    messagehandle.edit(ctx.http(), |b| {b.content(format!("Starting setup!\n{} Contracts indexed!", count))}).await?;
+                    messagehandle
+                        .edit(ctx.http(), |b| {
+                            b.content(format!("Starting setup!\n{} Contracts indexed!", count))
+                        })
+                        .await?;
                 }
-
             }
         }
-        messagehandle.edit(ctx.http(), |b| {b.content(format!("Starting setup!\n{} Contracts indexed!", count))}).await?;
+        messagehandle
+            .edit(ctx.http(), |b| {
+                b.content(format!("Starting setup!\n{} Contracts indexed!", count))
+            })
+            .await?;
 
         let response =
             reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
@@ -142,18 +152,19 @@ pub async fn bribewatch(
         token = jsontoken.tokens;
 
         ctx.channel_id()
-            .say(ctx, format!("*Found {} contracts to watch!*", veccontracts.len()))
+            .say(
+                ctx,
+                format!("*Found {} contracts to watch!*", veccontracts.len()),
+            )
             .await?;
     }
-
 
     let mut lastblock = provider.get_block_number().await? - 1000;
 
     'mainloop: loop {
-
         let currenttime = tokio::time::Instant::now();
         //let timeinu64 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs() + 500;
-        let utc1: DateTime<Utc> = Utc::now(); // + chrono::Duration::seconds(300);
+        let _utc1: DateTime<Utc> = Utc::now(); // + chrono::Duration::seconds(300);
         let currentblock = provider.get_block_number().await?;
         let status = format!("block {}", currentblock);
         poise::serenity_prelude::Context::set_activity(
@@ -174,15 +185,17 @@ pub async fn bribewatch(
                     .parse::<H256>()?,
             )
             .address(veccontracts.clone());
-            //.address("0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?);
+        //.address("0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?);
 
         let logs = client.get_logs(&filter).await?;
-       // println!("{} transactions found!", logs.iter().len());
+        // println!("{} transactions found!", logs.iter().len());
         for log in logs {
-         //   println!("test {:#?}", log);
+            //   println!("test {:#?}", log);
             let erctoken = Address::from(log.topics[2]);
             let fromaddresstest = Address::from(log.topics[1]);
-            let fromadress = if fromaddresstest == "0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()? {
+            let fromadress = if fromaddresstest
+                == "0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?
+            {
                 "Solid Lizard team!".to_string()
             } else {
                 format!("0x{:X}", fromaddresstest)
@@ -190,19 +203,23 @@ pub async fn bribewatch(
 
             let amount = U256::decode(log.data)?;
             let tx = log.transaction_hash.unwrap();
-            
-            let block = provider.get_block(log.block_number.unwrap()).await?.unwrap();
+
+            let block = provider
+                .get_block(log.block_number.unwrap())
+                .await?
+                .unwrap();
             let time = block.timestamp;
-          //  println!("{}", time);
+            //  println!("{}", time);
             // The old way of getting the utc from the time is a lot cleaner, however, a new way is needed as seen below to avoid it crashing when we go over 262 000 years.
             //let utc = chrono::Utc.timestamp(time.low_u64() as i64, 0);
-            let utc = DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(time.low_u64() as i64, 0).unwrap(), Utc);
-
-
+            let utc = DateTime::<Utc>::from_utc(
+                chrono::NaiveDateTime::from_timestamp_opt(time.low_u64() as i64, 0).unwrap(),
+                Utc,
+            );
 
             let poolname = match hashmapofpools.get(&log.address) {
                 Some(val) => val,
-                _ => "A new Bribe occurred"
+                _ => "A new Bribe occurred",
             };
 
             if let Some(tokenname) = token
@@ -215,7 +232,7 @@ pub async fn bribewatch(
                     .ok_or("https://solidlizard.finance/images/ui/lz-logo.png".to_string())?;
 
                 let decimals = tokenname.decimals;
-                
+
                 let mut readableamount = format_units(amount, decimals as u32)?;
                 let splitting = readableamount.find('.').unwrap() + 4;
                 readableamount.truncate(splitting);
@@ -239,7 +256,6 @@ pub async fn bribewatch(
                     })
                     .await?;
             } else {
-
                 let mut readableamount = format_units(amount, "ether")?;
                 let splitting = readableamount.find('.').unwrap() + 4;
                 readableamount.truncate(splitting);
@@ -273,13 +289,14 @@ pub async fn bribewatch(
                 poise::serenity_prelude::Context::set_activity(
                     ctx.serenity_context(),
                     Activity::watching("A stop sign"),
-                ).await;
+                )
+                .await;
                 break 'mainloop;
             }
             timecount += 1;
-            
-            tokio::time::sleep_until(currenttime + tokio::time::Duration::from_secs(5*timecount)).await;
-            
+
+            tokio::time::sleep_until(currenttime + tokio::time::Duration::from_secs(5 * timecount))
+                .await;
         }
     }
 
