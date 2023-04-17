@@ -10,17 +10,12 @@ poise = { version = "0.5.2", features = ["cache"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serenity = { version = "0.11.5", default-features = false, features = ["client","gateway", "rustls_backend", "model"] }
 dotenv_codegen = "0.15.0"
-ethabi = "18.0.0"
 ethers = { version = "2.0.2", features = ["ws"] }
 serde_json = "1.0.95"
-graphql_client = "0.12.0"
 reqwest = "0.11.16"
 serde_derive = "1.0.159"
 serde = "1.0.159"
-rust-embed = "6.6.1"
-ureq = { version = "2.6.1", features = ["json", "charset"] }
 ethers-etherscan = "2.0.2"
-image = "0.24.6"
 chrono = "0.4.24"
 [target.'cfg(unix)'.dependencies]
 openssl = { version = "0.10.45", features = ["vendored"] }

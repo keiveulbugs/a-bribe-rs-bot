@@ -7,7 +7,10 @@ use std::sync::atomic::Ordering;
 #[poise::command(slash_command, guild_only = true)]
 pub async fn contract_update(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
-    if !rolesofuser.unwrap().administrator() && ctx.author().id != UserId(397118394714816513) {
+    if !rolesofuser.unwrap().administrator()
+        && ctx.author().id != UserId(397118394714816513)
+        && ctx.author().id != UserId(320292370161598465)
+    {
         return Ok(());
     }
     UPDATEBOOL.swap(true, Ordering::Relaxed);

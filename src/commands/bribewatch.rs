@@ -1,5 +1,5 @@
 use crate::{Error, STOPBOOL, UPDATEBOOL};
-use chrono::{prelude::Utc, DateTime, TimeZone};
+use chrono::{prelude::Utc, DateTime};
 use ethers::{
     contract::abigen,
     core::abi::AbiDecode,
@@ -54,12 +54,8 @@ pub struct Token {
     pub listed_in: Vec<String>,
 }
 
-pub struct Pool {
-    pub caddress: Address,
-    pub cname: String,
-}
-
-const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
+// If you want to use alchemy instead of the public rpc, enable this and line 87.
+// const ALCHEMYKEY: &str = dotenv!("ALCHEMY");
 
 // Command that starts watching all blocks for contract interaction
 #[poise::command(slash_command, guild_only = true)]
@@ -68,7 +64,11 @@ pub async fn bribewatch(
     #[description = "Channel to post updates"] channel: ChannelId,
 ) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
-    if !rolesofuser.unwrap().administrator() && ctx.author().id != UserId(397118394714816513) {
+    if !rolesofuser.unwrap().administrator()
+        && ctx.author().id != UserId(397118394714816513)
+        && ctx.author().id != UserId(320292370161598465)
+    {
+        ctx.say("You don't have enough rights to do this!").await?;
         return Ok(());
     }
     ctx.say(format!(
@@ -87,6 +87,7 @@ pub async fn bribewatch(
 
     let mut token = jsontoken.tokens;
 
+    // Uncomment this if you want to use alchemy instead of the default rpc.
     // let provider = Provider::<Ws>::connect(format!("wss://arb-mainnet.g.alchemy.com/v2/{}", ALCHEMYKEY))
     // .await
     // .map_err(|wserr| format!("Couldn't connect to the Alchemy websocket! {}", wserr))?;
@@ -163,9 +164,18 @@ pub async fn bribewatch(
 
     'mainloop: loop {
         let currenttime = tokio::time::Instant::now();
-        //let timeinu64 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs() + 500;
-        let _utc1: DateTime<Utc> = Utc::now(); // + chrono::Duration::seconds(300);
-        let currentblock = provider.get_block_number().await?;
+        let currentblock = match provider.get_block_number().await {
+            Ok(val) => val,
+            Err(_) => {
+                let blocknumber = match provider.get_block_number().await {
+                    Ok(val) => val,
+                    Err(_) => {
+                        continue 'mainloop;
+                    }
+                };
+                blocknumber
+            }
+        };
         let status = format!("block {}", currentblock);
         poise::serenity_prelude::Context::set_activity(
             ctx.serenity_context(),
@@ -174,23 +184,17 @@ pub async fn bribewatch(
         .await;
 
         let filter = Filter::new()
-            //.select(65886513)
             .to_block(currentblock)
-            .from_block(78203264)
-            //.to_block(80668920)
-            //.from_block(65886512)
-            //.from_block(lastblock)
+            .from_block(lastblock)
             .topic0(
                 "0xf70d5c697de7ea828df48e5c4573cb2194c659f1901f70110c52b066dcf50826"
                     .parse::<H256>()?,
             )
             .address(veccontracts.clone());
-        //.address("0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?);
 
         let logs = client.get_logs(&filter).await?;
         // println!("{} transactions found!", logs.iter().len());
-        for log in logs {
-            //   println!("test {:#?}", log);
+        'logs: for log in logs {
             let erctoken = Address::from(log.topics[2]);
             let fromaddresstest = Address::from(log.topics[1]);
             let fromadress = if fromaddresstest
@@ -201,19 +205,49 @@ pub async fn bribewatch(
                 format!("0x{:X}", fromaddresstest)
             };
 
-            let amount = U256::decode(log.data)?;
-            let tx = log.transaction_hash.unwrap();
+            let amount = match U256::decode(log.data) {
+                Ok(val) => val,
+                Err(_) => {
+                    continue 'logs;
+                }
+            };
+            let tx = match log.transaction_hash {
+                Some(val) => val,
+                None => {
+                    continue 'logs;
+                }
+            };
+            let logblocknumber = match log.block_number {
+                Some(val) => val,
+                None => {
+                    continue 'logs;
+                }
+            };
 
-            let block = provider
-                .get_block(log.block_number.unwrap())
-                .await?
-                .unwrap();
+            let blockresult = match provider.get_block(logblocknumber).await {
+                Ok(val) => val,
+                Err(_) => {
+                    continue 'logs;
+                }
+            };
+            let block = match blockresult {
+                Some(val) => val,
+                None => {
+                    continue 'logs;
+                }
+            };
+
             let time = block.timestamp;
-            //  println!("{}", time);
+
             // The old way of getting the utc from the time is a lot cleaner, however, a new way is needed as seen below to avoid it crashing when we go over 262 000 years.
             //let utc = chrono::Utc.timestamp(time.low_u64() as i64, 0);
             let utc = DateTime::<Utc>::from_utc(
-                chrono::NaiveDateTime::from_timestamp_opt(time.low_u64() as i64, 0).unwrap(),
+                match chrono::NaiveDateTime::from_timestamp_opt(time.low_u64() as i64, 0) {
+                    Some(val) => val,
+                    None => {
+                        continue 'logs;
+                    }
+                },
                 Utc,
             );
 
@@ -233,9 +267,16 @@ pub async fn bribewatch(
 
                 let decimals = tokenname.decimals;
 
-                let mut readableamount = format_units(amount, decimals as u32)?;
-                let splitting = readableamount.find('.').unwrap() + 4;
-                readableamount.truncate(splitting);
+                let mut readableamount = match format_units(amount, decimals as u32) {
+                    Ok(val) => val,
+                    Err(_) => "Unknown".to_string(),
+                };
+                match readableamount.find('.') {
+                    Some(val) => {
+                        readableamount.truncate(val + 4);
+                    }
+                    None => readableamount = "Unknown".to_string(),
+                };
 
                 channel
                     .send_message(ctx.http(), |a| {
@@ -256,9 +297,16 @@ pub async fn bribewatch(
                     })
                     .await?;
             } else {
-                let mut readableamount = format_units(amount, "ether")?;
-                let splitting = readableamount.find('.').unwrap() + 4;
-                readableamount.truncate(splitting);
+                let mut readableamount = match format_units(amount, "ether") {
+                    Ok(val) => val,
+                    Err(_) => "Unknown".to_string(),
+                };
+                match readableamount.find('.') {
+                    Some(val) => {
+                        readableamount.truncate(val + 4);
+                    }
+                    None => readableamount = "Unknown".to_string(),
+                };
 
                 channel
                     .send_message(ctx.http(), |a| {
@@ -266,7 +314,7 @@ pub async fn bribewatch(
                             b.title(poolname)
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", fromadress, false)
-                                .field("Token", erctoken, false)
+                                .field("Token", format!("{:x}", erctoken), false)
                                 .field("Amount", readableamount, false)
                                 .footer(|f| {
                                     f.text("Sliz productions".to_string()).icon_url(
@@ -279,11 +327,12 @@ pub async fn bribewatch(
                     .await?;
             }
 
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
         lastblock = currentblock;
         let mut timecount = 0;
         while timecount < 60 {
+            // Stops the bot
             if STOPBOOL.load(Relaxed) {
                 channel.say(ctx.http(), "The bribebot is stopped!").await?;
                 poise::serenity_prelude::Context::set_activity(
@@ -293,8 +342,75 @@ pub async fn bribewatch(
                 .await;
                 break 'mainloop;
             }
-            timecount += 1;
+            // Updates the bot
+            if UPDATEBOOL.load(Relaxed) {
+                UPDATEBOOL.swap(false, Relaxed);
+                ctx.say("Started updating the bot").await?;
+                hashmapofpools.clear();
+                veccontracts.clear();
+                veccontracts.push("0x98A1De08715800801E9764349F5A71cBe63F99cd".parse::<H160>()?);
+                let internaltxvec = arbscanclient
+                    .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
+                    .await?;
+                let mut count = 0;
+                'tx: for tx in internaltxvec {
+                    if tx.result_type == "create" && tx.contract_address.value().is_some() {
+                        let ad = tx.contract_address.value().unwrap();
+                        veccontracts.push(*ad);
+                        let trans = provider.get_transaction(tx.hash).await?.unwrap();
+                        let input = trans.input;
+                        let call = match CreateGaugeCall::decode(&input) {
+                            Ok(val) => val,
+                            Err(_) => {
+                                continue 'tx;
+                            }
+                        };
 
+                        let pool: Address = call.pool;
+
+                        let contract = PoolContract::new(pool, client.clone());
+                        let name = match contract.name().call().await {
+                            Ok(val) => val,
+                            Err(_) => "A new Bribe occurred!".to_string(),
+                        };
+
+                        hashmapofpools.insert(*ad, name);
+                        count += 1;
+                        if count % 10 == 0 {
+                            messagehandle
+                                .edit(ctx.http(), |b| {
+                                    b.content(format!(
+                                        "Starting setup!\n{} Contracts indexed!",
+                                        count
+                                    ))
+                                })
+                                .await?;
+                        }
+                    }
+                }
+                messagehandle
+                    .edit(ctx.http(), |b| {
+                        b.content(format!("Starting setup!\n{} Contracts indexed!", count))
+                    })
+                    .await?;
+
+                let response = reqwest::get(
+                    "https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json",
+                )
+                .await?;
+                let jsontoken: Logos = response.json().await?;
+                token = jsontoken.tokens;
+
+                ctx.channel_id()
+                    .say(
+                        ctx,
+                        format!("*Found {} contracts to watch!*", veccontracts.len()),
+                    )
+                    .await?;
+            }
+            // To make the bot responsive, we loop over these if function 60 times, and thus being 5 minutes,
+            // instead of simply waiting 5 minutes and then checking the statements again.
+            timecount += 1;
             tokio::time::sleep_until(currenttime + tokio::time::Duration::from_secs(5 * timecount))
                 .await;
         }
