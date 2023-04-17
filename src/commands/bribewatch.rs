@@ -166,14 +166,13 @@ pub async fn bribewatch(
         let currenttime = tokio::time::Instant::now();
         let currentblock = match provider.get_block_number().await {
             Ok(val) => val,
-            Err(_) => {
-                let blocknumber = match provider.get_block_number().await {
+            Err(_) => {                
+                match provider.get_block_number().await {
                     Ok(val) => val,
                     Err(_) => {
                         continue 'mainloop;
                     }
-                };
-                blocknumber
+                }
             }
         };
         let status = format!("block {}", currentblock);
