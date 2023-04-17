@@ -11,6 +11,7 @@ pub async fn contract_update(ctx: poise::Context<'_, (), Error>) -> Result<(), E
         && ctx.author().id != UserId(397118394714816513)
         && ctx.author().id != UserId(320292370161598465)
     {
+        ctx.say("You don't have enough rights").await?;
         return Ok(());
     }
     UPDATEBOOL.swap(true, Ordering::Relaxed);

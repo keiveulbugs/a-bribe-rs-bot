@@ -10,6 +10,7 @@ pub async fn stop(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {
         && ctx.author().id != UserId(397118394714816513)
         && ctx.author().id != UserId(320292370161598465)
     {
+        ctx.say("You don't have enough rights").await?;
         return Ok(());
     }
     STOPBOOL.swap(true, Relaxed);
