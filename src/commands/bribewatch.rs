@@ -160,6 +160,8 @@ pub async fn bribewatch(
             .await?;
     }
 
+    // Change the 1000 to go back further in time on use of the slash command. 
+    // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
     let mut lastblock = provider.get_block_number().await? - 1000;
 
     'mainloop: loop {
