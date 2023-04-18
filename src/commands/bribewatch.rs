@@ -78,6 +78,8 @@ pub async fn bribewatch(
     ))
     .await?;
 
+
+
     let mut messagehandle = channel
         .send_message(ctx.http(), |b| b.content("Starting setup!"))
         .await?;
@@ -324,7 +326,7 @@ pub async fn bribewatch(
                             b.title(poolname)
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", fromadress, false)
-                                .field("Token", format!("{:x}", erctoken), false)
+                                .field("Token", format!("0x{:x}", erctoken), false)
                                 .field("Amount", readableamount, false)
                                 .footer(|f| {
                                     f.text("Sliz productions".to_string()).icon_url(
