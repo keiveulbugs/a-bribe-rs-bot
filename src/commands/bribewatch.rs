@@ -62,6 +62,7 @@ pub struct Token {
 pub async fn bribewatch(
     ctx: poise::Context<'_, (), Error>,
     #[description = "Channel to post updates"] channel: ChannelId,
+   // #[description = "Fetch the total amount of bribes"]    total: bool,
 ) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
     if !rolesofuser.unwrap().administrator()
@@ -93,72 +94,80 @@ pub async fn bribewatch(
     // .map_err(|wserr| format!("Couldn't connect to the Alchemy websocket! {}", wserr))?;
     let provider = Provider::<Http>::try_from("https://arb1.arbitrum.io/rpc")?;
     let client = Arc::new(&provider);
-    let mut veccontracts = vec!["0x98A1De08715800801E9764349F5A71cBe63F99cd".parse::<H160>()?];
+    let mut veccontracts = vec!["0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?];
     let address: Address = BRIBEFACTORY.parse()?;
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
     let mut hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
-
-    if UPDATEBOOL.load(Relaxed) {
-        UPDATEBOOL.swap(false, Relaxed);
-        let internaltxvec = arbscanclient
-            .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
-            .await?;
-        let mut count = 0;
-        'tx: for tx in internaltxvec {
-            if tx.result_type == "create" && tx.contract_address.value().is_some() {
-                let ad = tx.contract_address.value().unwrap();
-                veccontracts.push(*ad);
-                //let input = tx.input;
-                //println!("{:#?}", &tx);
-                let trans = provider.get_transaction(tx.hash).await?.unwrap();
-                let input = trans.input;
-                let call = match CreateGaugeCall::decode(&input) {
-                    Ok(val) => val,
-                    Err(_) => {
-                        continue 'tx;
-                    }
-                };
-
-                let pool: Address = call.pool;
-
-                //let contract = IERC20::new(address, client);
-                let contract = PoolContract::new(pool, client.clone());
-                let name = match contract.name().call().await {
-                    Ok(val) => val,
-                    Err(_) => "A new Bribe occurred!".to_string(),
-                };
-
-                hashmapofpools.insert(*ad, name);
-                count += 1;
-                if count % 10 == 0 {
-                    messagehandle
-                        .edit(ctx.http(), |b| {
-                            b.content(format!("Starting setup!\n{} Contracts indexed!", count))
-                        })
-                        .await?;
+    
+    UPDATEBOOL.swap(false, Relaxed);
+    let internaltxvec = arbscanclient
+        .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
+        .await?;
+    let mut count = 0;
+    'tx: for tx in internaltxvec {
+        if tx.result_type == "create" && tx.contract_address.value().is_some() {
+            let ad = tx.contract_address.value().unwrap();
+            veccontracts.push(*ad);
+            //let input = tx.input;
+            //println!("{:#?}", &tx);
+            let trans = provider.get_transaction(tx.hash).await?.unwrap();
+            let input = trans.input;
+            let call = match CreateGaugeCall::decode(&input) {
+                Ok(val) => val,
+                Err(_) => {
+                    continue 'tx;
                 }
+            };
+
+            let pool: Address = call.pool;
+
+            //let contract = IERC20::new(address, client);
+            let contract = PoolContract::new(pool, client.clone());
+            let name = match contract.name().call().await {
+                Ok(val) => val,
+                Err(_) => "A new Bribe occurred!".to_string(),
+            };
+
+            hashmapofpools.insert(*ad, name);
+            count += 1;
+            if count % 10 == 0 {
+                messagehandle
+                    .edit(ctx.http(), |b| {
+                        b.content(format!("Starting setup!\n{} Contracts indexed!", count))
+                    })
+                    .await?;
             }
         }
-        messagehandle
-            .edit(ctx.http(), |b| {
-                b.content(format!("Starting setup!\n{} Contracts indexed!", count))
-            })
-            .await?;
-
-        let response =
-            reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
-                .await?;
-        let jsontoken: Logos = response.json().await?;
-        token = jsontoken.tokens;
-
-        ctx.channel_id()
-            .say(
-                ctx,
-                format!("*Found {} contracts to watch!*", veccontracts.len()),
-            )
-            .await?;
     }
+    messagehandle
+        .edit(ctx.http(), |b| {
+            b.content(format!("Starting setup!\n{} Contracts indexed!", count))
+        })
+        .await?;
+
+    let response =
+        reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
+            .await?;
+    let jsontoken: Logos = response.json().await?;
+    token = jsontoken.tokens;
+
+    ctx.channel_id()
+        .say(
+            ctx,
+            format!("*Found {} contracts to watch!*", veccontracts.len()),
+        )
+        .await?;
+    
+    let mut hashmapofamount: HashMap<H160, U256> = std::collections::HashMap::new();
+
+    // if total {
+    //     ctx.say("Getting the total amount of bribes. Note this may take a long time.").await?;
+
+
+
+    // };
+
 
     // Change the 1000 to go back further in time on use of the slash command. 
     // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
