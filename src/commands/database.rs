@@ -1,5 +1,5 @@
-use crate::Error;
 use crate::commands::databasesetup::databasesetup;
+use crate::Error;
 
 use ethers::{
     contract::abigen,
@@ -27,6 +27,17 @@ use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
+#[derive(Debug, Deserialize)]
+struct Record {
+    #[allow(dead_code)]
+    id: Thing,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Contact {
+    userid :UserId,
+    address :Address
+}
 
 // Struct for determining visibility of message later on.
 #[derive(poise::ChoiceParameter, Clone, Copy)]
@@ -44,15 +55,76 @@ pub enum Visibility {
 #[poise::command(slash_command)]
 pub async fn database(
     ctx: poise::Context<'_, (), Error>,
-    #[description = "Channel to post updates"] startblock: Option<u64>,
-    #[description = "Delete database"] delete: Option<bool>,
+    #[description = "The first block of the database, creates the database"] startblock: Option<u64>,
+    #[description = "Delete bribe record database (before creating a new one)"] delete: Option<bool>,
+    #[description = "Add your address to addressbook"] address: Option<String>,
 ) -> Result<(), Error> {
-
-
+    // Creates a new database and fetches bribes
     if startblock.is_some() {
         let delete = delete.unwrap_or(false);
+
         databasesetup(ctx, delete, startblock.unwrap()).await?;
     }
+    // deletes all bribes in a database without creating a new one
+    if delete.is_some() && startblock.is_none() {
+        let rolesofuser = ctx.author_member().await.unwrap().permissions;
+        if !rolesofuser.unwrap().administrator()
+            && ctx.author().id != UserId(397118394714816513)
+            && ctx.author().id != UserId(320292370161598465)
+        {
+            ctx.say("You don't have enough rights to do this!").await?;
+            return Ok(());
+        }
+        let db = match Surreal::new::<File>("temp.db").await {
+            Ok(val) => val,
+            Err(_) => {
+                panic!("Couldn't connect to the database")
+            }
+        };
+        // connects to the database with the right namescheme and name
+        db.use_ns("bribebot").use_db("bribebotdb").await?;
+
+        // Deletes the database when requested by the user
+        let deletebribe: Vec<Record> = db.delete("bribe").await?;
+        ctx.send(|b| b.content(format!("Deleted {} data entries", deletebribe.len())).ephemeral(true))
+            .await?;
+    }
+    // add an address to the addressbook
+    if address.is_some() {
+        let addressclean = address.unwrap();
+        let address = match addressclean.parse::<Address>() {
+            Ok(val) => val,
+            Err(_) => {ctx.send(|b| {b.content(format!("This is not a valid address: *{}*", addressclean))}.ephemeral(true)).await?; return Ok(());}
+        };
+
+        // starts database in a local file
+        let db = match Surreal::new::<File>("temp.db").await {
+            Ok(val) => val,
+            Err(_) => {
+                panic!("Couldn't connect to the database")
+            }
+        };
+        // connects to the database with the right namescheme and name
+        db.use_ns("bribebot").use_db("bribebotdb").await?;
+
+        // database entry
+        let _querycreation: Contact = match db
+        .create("contact")
+        .content( Contact {
+            userid: ctx.author().id,
+            address: address,
+        })
+        .await {
+            Ok(val) => {ctx.send(|b| {b.content(format!("Succesfully added: *{}*", addressclean))}.ephemeral(true)).await?; val},
+            Err(_) => {ctx.send(|b| {b.content(format!("Could not add address: *{}*", addressclean))}.ephemeral(true)).await?; return Ok(());}
+        };
+        dbg!(_querycreation);
+
+        return Ok(());
+    }
+
+
+
 
     Ok(())
 }

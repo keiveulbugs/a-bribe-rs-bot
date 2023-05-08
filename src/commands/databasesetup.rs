@@ -26,7 +26,6 @@ use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-
 lazy_static! {
     static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
         let m = HashMap::new();
@@ -95,8 +94,8 @@ pub struct Token {
 
 pub async fn databasesetup(
     ctx: poise::Context<'_, (), Error>,
-    delete :bool,
-    startblock :u64
+    delete: bool,
+    startblock: u64,
 ) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
     if !rolesofuser.unwrap().administrator()
@@ -108,12 +107,11 @@ pub async fn databasesetup(
     }
     ctx.say("creating the database".to_string()).await?;
 
-
     // starts database in a local file
     let db = match Surreal::new::<File>("temp.db").await {
         Ok(val) => val,
         Err(_) => {
-            panic!("Couldn't create a datbase")
+            panic!("Couldn't connect to the database")
         }
     };
     // connects to the database with the right namescheme and name
@@ -365,7 +363,7 @@ pub async fn databasesetup(
             pagecount += 1;
         } else if press.data.custom_id == next_button_id {
             ctx.send(|b| { b.content("You are on the last page") }.ephemeral(true))
-            .await?;
+                .await?;
             continue;
         } else if press.data.custom_id == prev_button_id && pagecount > 0 {
             pagecount -= 1;
@@ -393,7 +391,6 @@ pub async fn databasesetup(
             pagevec.push((bribes.tokenname.to_string(), readableamount, false));
         }
 
-
         // Update the message with the new page contents
         press
             .create_interaction_response(ctx, |b| {
@@ -414,9 +411,6 @@ pub async fn databasesetup(
             })
             .await?;
     }
-
-
-
 
     Ok(())
 }
