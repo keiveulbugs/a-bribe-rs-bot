@@ -1,27 +1,10 @@
 use crate::commands::databasesetup::databasesetup;
 use crate::Error;
 
-use ethers::{
-    contract::abigen,
-    core::abi::AbiDecode,
-    providers::{Http, Middleware, Provider},
-    types::{Address, Chain, Filter, H160, H256, U256},
-    utils::format_units,
-};
-use ethers_etherscan::account::InternalTxQueryOption;
-use lazy_static::lazy_static;
+use ethers::types::Address;
 
-use poise::serenity_prelude::{CacheHttp, UserId};
+use poise::serenity_prelude::UserId;
 use serde::{Deserialize, Serialize};
-
-use serenity::collector::component_interaction_collector::CollectComponentInteraction;
-use serenity::model::application::interaction::InteractionResponseType;
-use serenity::utils::Colour;
-
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
@@ -35,8 +18,8 @@ struct Record {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Contact {
-    userid :UserId,
-    address :Address
+    userid: UserId,
+    address: Address,
 }
 
 // Struct for determining visibility of message later on.
@@ -55,8 +38,12 @@ pub enum Visibility {
 #[poise::command(slash_command)]
 pub async fn database(
     ctx: poise::Context<'_, (), Error>,
-    #[description = "The first block of the database, creates the database"] startblock: Option<u64>,
-    #[description = "Delete bribe record database (before creating a new one)"] delete: Option<bool>,
+    #[description = "The first block of the database, creates the database"] startblock: Option<
+        u64,
+    >,
+    #[description = "Delete bribe record database (before creating a new one)"] delete: Option<
+        bool,
+    >,
     #[description = "Add your address to addressbook"] address: Option<String>,
 ) -> Result<(), Error> {
     // Creates a new database and fetches bribes
@@ -86,15 +73,25 @@ pub async fn database(
 
         // Deletes the database when requested by the user
         let deletebribe: Vec<Record> = db.delete("bribe").await?;
-        ctx.send(|b| b.content(format!("Deleted {} data entries", deletebribe.len())).ephemeral(true))
-            .await?;
+        ctx.send(|b| {
+            b.content(format!("Deleted {} data entries", deletebribe.len()))
+                .ephemeral(true)
+        })
+        .await?;
     }
     // add an address to the addressbook
     if address.is_some() {
         let addressclean = address.unwrap();
         let address = match addressclean.parse::<Address>() {
             Ok(val) => val,
-            Err(_) => {ctx.send(|b| {b.content(format!("This is not a valid address: *{}*", addressclean))}.ephemeral(true)).await?; return Ok(());}
+            Err(_) => {
+                ctx.send(|b| {
+                    { b.content(format!("This is not a valid address: *{}*", addressclean)) }
+                        .ephemeral(true)
+                })
+                .await?;
+                return Ok(());
+            }
         };
 
         // starts database in a local file
@@ -109,22 +106,33 @@ pub async fn database(
 
         // database entry
         let _querycreation: Contact = match db
-        .create("contact")
-        .content( Contact {
-            userid: ctx.author().id,
-            address: address,
-        })
-        .await {
-            Ok(val) => {ctx.send(|b| {b.content(format!("Succesfully added: *{}*", addressclean))}.ephemeral(true)).await?; val},
-            Err(_) => {ctx.send(|b| {b.content(format!("Could not add address: *{}*", addressclean))}.ephemeral(true)).await?; return Ok(());}
+            .create("contact")
+            .content(Contact {
+                userid: ctx.author().id,
+                address,
+            })
+            .await
+        {
+            Ok(val) => {
+                ctx.send(|b| {
+                    { b.content(format!("Succesfully added: *{}*", addressclean)) }.ephemeral(true)
+                })
+                .await?;
+                val
+            }
+            Err(_) => {
+                ctx.send(|b| {
+                    { b.content(format!("Could not add address: *{}*", addressclean)) }
+                        .ephemeral(true)
+                })
+                .await?;
+                return Ok(());
+            }
         };
         dbg!(_querycreation);
 
         return Ok(());
     }
-
-
-
 
     Ok(())
 }
