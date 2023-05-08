@@ -146,8 +146,6 @@ pub async fn bribewatch(
         })
         .await?;
 
-
-
     ctx.channel_id()
         .say(
             ctx,

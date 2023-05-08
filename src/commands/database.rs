@@ -14,11 +14,12 @@ use serde::{Deserialize, Serialize};
 
 use serenity::collector::component_interaction_collector::CollectComponentInteraction;
 use serenity::model::application::interaction::InteractionResponseType;
+use serenity::utils::Colour;
 
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::{collections::HashMap};
 
 use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
@@ -328,15 +329,23 @@ pub async fn database(
     // Send the embed with the first page as content
 
     ctx.send(|b| {
-        b.embed(|b| b.description(format!("**Bribes {}-{}/{}**", pagecount * 20, pagecount * 20 + pagevec.len(), bribevec.len())).fields(pagevec.clone()).footer(|f| {
-            f.text(format!("Page {}/{}", pagecount + 1, pagelength))
-        }))
-            .components(|b| {
-                b.create_action_row(|b| {
-                    b.create_button(|b| b.custom_id(&prev_button_id).emoji('◀'))
-                        .create_button(|b| b.custom_id(&next_button_id).emoji('▶'))
-                })
+        b.embed(|b| {
+            b.description(format!(
+                "**Bribes {}-{}/{}**",
+                pagecount * 20,
+                pagecount * 20 + pagevec.len(),
+                bribevec.len()
+            ))
+            .fields(pagevec.clone())
+            .footer(|f| f.text(format!("Page {}/{}", pagecount + 1, pagelength)))
+            .colour(Colour::BLITZ_BLUE)
+        })
+        .components(|b| {
+            b.create_action_row(|b| {
+                b.create_button(|b| b.custom_id(&prev_button_id).emoji('◀'))
+                    .create_button(|b| b.custom_id(&next_button_id).emoji('▶'))
             })
+        })
     })
     .await?;
 
@@ -351,8 +360,12 @@ pub async fn database(
         .await
     {
         // Depending on which button was pressed, go to next or previous page
-        if press.data.custom_id == next_button_id {
+        if press.data.custom_id == next_button_id && pagecount <= pagelength {
             pagecount += 1;
+        } else if press.data.custom_id == next_button_id {
+            ctx.send(|b| { b.content("You are on the last page") }.ephemeral(true))
+            .await?;
+            continue;
         } else if press.data.custom_id == prev_button_id && pagecount > 0 {
             pagecount -= 1;
         } else if press.data.custom_id == prev_button_id {
@@ -379,11 +392,6 @@ pub async fn database(
             pagevec.push((bribes.tokenname.to_string(), readableamount, false));
         }
 
-        if pagevec.is_empty() {
-            ctx.send(|b| { b.content("You are on the last page") }.ephemeral(true))
-                .await?;
-            continue;
-        }
 
         // Update the message with the new page contents
         press
@@ -391,20 +399,20 @@ pub async fn database(
                 b.kind(InteractionResponseType::UpdateMessage)
                     .interaction_response_data(|b| {
                         b.embed(|b| {
-                            b.description(format!("**Bribes {}-{}/{}**", pagecount * 20, pagecount * 20 + pagevec.len(), bribevec.len()))
-                                .fields(pagevec.clone())
-                                .footer(|f| {
-                                    f.text(format!("Page {}/{}", pagecount + 1, pagelength))
-                                })
+                            b.description(format!(
+                                "**Bribes {}-{}/{}**",
+                                pagecount * 20,
+                                pagecount * 20 + pagevec.len(),
+                                bribevec.len()
+                            ))
+                            .fields(pagevec.clone())
+                            .colour(Colour::BLITZ_BLUE)
+                            .footer(|f| f.text(format!("Page {}/{}", pagecount + 1, pagelength)))
                         })
                     })
             })
             .await?;
     }
-
-    // println!("======================================");
-    // let groups = db.query("SELECT * FROM bribe)").await?;
-    // dbg!(groups);
 
     Ok(())
 }

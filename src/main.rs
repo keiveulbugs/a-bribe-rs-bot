@@ -45,29 +45,12 @@ async fn on_ready(
 
     println!("Connecting the database");
 
-    //  let db = Surreal::connect(&self, "database.db").await?;
-    // surrealdb::engine::any::connect("mem://").await?;
-    //let dbs = Surreal::new::<Ws>("localhost:8000");
-    //let db = surrealdb::engine::any::connect("http://localhost:8000").await;
-    let _db = match Surreal::new::<File>("temp.db").await {
+    match Surreal::new::<File>("temp.db").await {
         Ok(val) => val,
         Err(_) => {
             panic!("Couldn't create a datbase")
         }
     };
-    //println!("{:#?}", db);
-
-    // let conn = Connection::open("bribebot.db").expect("Couldn't open database");
-
-    // conn.execute(
-    //     "CREATE TABLE IF NOT EXISTS addressesbook (
-    //         indexkey INTEGER PRIMARY KEY AUTOINCREMENT,
-    //         address VARCHAR(255) NOT NULL
-    //         discordid INTEGER
-    //     )",
-    //     (),
-    // )
-    // .expect("couldn't create persons table");
 
     // To announce that the bot is online.
     println!("{} is connected!", ready.user.name);
