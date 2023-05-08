@@ -159,7 +159,7 @@ pub async fn bribewatch(
         )
         .await?;
 
-    let mut hashmapofamount: HashMap<H160, U256> = std::collections::HashMap::new();
+    let _hashmapofamount: HashMap<H160, U256> = std::collections::HashMap::new();
 
     // if total {
     //     ctx.say("Getting the total amount of bribes. Note this may take a long time.").await?;

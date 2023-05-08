@@ -2,32 +2,31 @@ use crate::Error;
 use ethers::{
     contract::abigen,
     core::abi::AbiDecode,
-    prelude::k256::elliptic_curve::bigint::U64,
     providers::{Http, Middleware, Provider},
-    types::{Address, BlockNumber, Chain, Filter, H160, H256, U256},
+    types::{Address, Chain, Filter, H160, H256, U256},
     utils::format_units,
 };
 use ethers_etherscan::account::InternalTxQueryOption;
 use lazy_static::lazy_static;
-use poise::serenity_prelude::{self as serenit, ChannelId};
-use poise::serenity_prelude::{Activity, CacheHttp, UserId};
+
+use poise::serenity_prelude::{CacheHttp, UserId};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 use serenity::collector::component_interaction_collector::CollectComponentInteraction;
 use serenity::model::application::interaction::InteractionResponseType;
-use serenity::utils::Colour;
+
 use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
-use surrealdb::engine::any::Any;
+use std::{collections::HashMap};
+
 use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 lazy_static! {
     static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
-        let mut m = HashMap::new();
+        let m = HashMap::new();
         Mutex::new(m)
     };
 }
@@ -106,7 +105,7 @@ pub async fn database(
         ctx.say("You don't have enough rights to do this!").await?;
         return Ok(());
     }
-    ctx.say(format!("creating the database",)).await?;
+    ctx.say("creating the database".to_string()).await?;
 
     // starts database in a local file
     let db = match Surreal::new::<File>("temp.db").await {
@@ -288,11 +287,11 @@ pub async fn database(
                     tokenaddress: erctoken,
                     poolname: poolname.into(),
                     tokenname: tokenname.into(),
-                    amount: amount,
+                    amount,
                     sender: fromaddress,
-                    txhash: txhash,
+                    txhash,
                     block: blocknumber,
-                    decimals: decimals,
+                    decimals,
                 })
                 .await?;
             //dbg!(_querycreation);
@@ -380,7 +379,7 @@ pub async fn database(
             pagevec.push((bribes.tokenname.to_string(), readableamount, false));
         }
 
-        if pagevec.len() < 1 {
+        if pagevec.is_empty() {
             ctx.send(|b| { b.content("You are on the last page") }.ephemeral(true))
                 .await?;
             continue;

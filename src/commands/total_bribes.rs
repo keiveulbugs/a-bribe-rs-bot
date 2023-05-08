@@ -1,5 +1,5 @@
-use crate::{Error, STOPBOOL, UPDATEBOOL};
-use chrono::{prelude::Utc, DateTime};
+use crate::{Error, UPDATEBOOL};
+
 use ethers::{
     contract::abigen,
     core::abi::AbiDecode,
@@ -10,7 +10,7 @@ use ethers::{
 use ethers_etherscan::account::InternalTxQueryOption;
 use poise::serenity_prelude::ButtonStyle;
 use poise::serenity_prelude::CollectComponentInteraction;
-use poise::serenity_prelude::{Activity, CacheHttp, ChannelId, UserId};
+
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
@@ -85,7 +85,7 @@ pub async fn total_bribes(
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
     let mut veccontracts = vec!["0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?];
     let address: Address = BRIBEFACTORY.parse()?;
-    let mut hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
+    let _hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
 
     UPDATEBOOL.swap(false, Relaxed);
     let internaltxvec = arbscanclient
@@ -148,13 +148,13 @@ pub async fn total_bribes(
                 continue 'logs;
             }
         };
-        let tx = match log.transaction_hash {
+        let _tx = match log.transaction_hash {
             Some(val) => val,
             None => {
                 continue 'logs;
             }
         };
-        let logblocknumber = match log.block_number {
+        let _logblocknumber = match log.block_number {
             Some(val) => val,
             None => {
                 continue 'logs;
@@ -234,11 +234,11 @@ pub async fn total_bribes(
             })
             .await?;
 
-        while let Some(mci) = CollectComponentInteraction::new(ctx)
+        while let Some(_mci) = CollectComponentInteraction::new(ctx)
             .author_id(ctx.author().id)
             .channel_id(ctx.channel_id())
             .timeout(std::time::Duration::from_secs(600)) //timeout after 10 minutes
-            .filter(move |mci| mci.data.custom_id == "more".to_string())
+            .filter(move |mci| mci.data.custom_id == *"more")
             .await
         {
             for chunkss in tempvec.clone() {

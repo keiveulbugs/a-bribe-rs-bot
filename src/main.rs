@@ -1,10 +1,10 @@
 mod commands;
 use poise::serenity_prelude::{self as serenity};
-use rusqlite::Connection;
+
 use std::sync::atomic::*;
-use surrealdb::engine::any::Any;
+
 use surrealdb::engine::local::File;
-use surrealdb::engine::remote::ws::Ws;
+
 use surrealdb::Surreal;
 
 // These Atomic bools are shared across the modules to interact between commands
@@ -49,7 +49,7 @@ async fn on_ready(
     // surrealdb::engine::any::connect("mem://").await?;
     //let dbs = Surreal::new::<Ws>("localhost:8000");
     //let db = surrealdb::engine::any::connect("http://localhost:8000").await;
-    let db = match Surreal::new::<File>("temp.db").await {
+    let _db = match Surreal::new::<File>("temp.db").await {
         Ok(val) => val,
         Err(_) => {
             panic!("Couldn't create a datbase")
