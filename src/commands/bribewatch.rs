@@ -146,11 +146,7 @@ pub async fn bribewatch(
         })
         .await?;
 
-    let response =
-        reqwest::get("https://raw.githubusercontent.com/DecentST/arblist/main/arbi-list.json")
-            .await?;
-    let jsontoken: Logos = response.json().await?;
-    token = jsontoken.tokens;
+
 
     ctx.channel_id()
         .say(
