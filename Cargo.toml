@@ -17,6 +17,8 @@ serde_derive = "1.0.159"
 serde = "1.0.159"
 ethers-etherscan = "2.0.2"
 chrono = "0.4.24"
+surrealdb = { version = "1.0.0-beta.9", features = ["kv-rocksdb"] }
+lazy_static = "1.4.0"
 [target.'cfg(unix)'.dependencies]
 openssl = { version = "0.10.45", features = ["vendored"] }
 

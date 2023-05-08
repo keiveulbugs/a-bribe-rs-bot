@@ -1,6 +1,11 @@
 mod commands;
 use poise::serenity_prelude::{self as serenity};
+use rusqlite::Connection;
 use std::sync::atomic::*;
+use surrealdb::engine::any::Any;
+use surrealdb::engine::local::File;
+use surrealdb::engine::remote::ws::Ws;
+use surrealdb::Surreal;
 
 // These Atomic bools are shared across the modules to interact between commands
 pub static STOPBOOL: AtomicBool = AtomicBool::new(false);
@@ -37,6 +42,33 @@ async fn on_ready(
             commands
         })
         .await;
+
+    println!("Connecting the database");
+
+    //  let db = Surreal::connect(&self, "database.db").await?;
+    // surrealdb::engine::any::connect("mem://").await?;
+    //let dbs = Surreal::new::<Ws>("localhost:8000");
+    //let db = surrealdb::engine::any::connect("http://localhost:8000").await;
+    let db = match Surreal::new::<File>("temp.db").await {
+        Ok(val) => val,
+        Err(_) => {
+            panic!("Couldn't create a datbase")
+        }
+    };
+    //println!("{:#?}", db);
+
+    // let conn = Connection::open("bribebot.db").expect("Couldn't open database");
+
+    // conn.execute(
+    //     "CREATE TABLE IF NOT EXISTS addressesbook (
+    //         indexkey INTEGER PRIMARY KEY AUTOINCREMENT,
+    //         address VARCHAR(255) NOT NULL
+    //         discordid INTEGER
+    //     )",
+    //     (),
+    // )
+    // .expect("couldn't create persons table");
+
     // To announce that the bot is online.
     println!("{} is connected!", ready.user.name);
 
@@ -53,8 +85,9 @@ async fn main() {
             commands: vec![
                 commands::stop::stop(),
                 commands::contract_update::contract_update(),
-               // commands::total_bribes::total_bribes(),
-commands::help::help(),
+                //commands::total_bribes::total_bribes(),
+                commands::database::database(),
+                commands::help::help(),
                 commands::bribewatch::bribewatch(),
             ],
             ..Default::default()

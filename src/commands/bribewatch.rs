@@ -62,7 +62,7 @@ pub struct Token {
 pub async fn bribewatch(
     ctx: poise::Context<'_, (), Error>,
     #[description = "Channel to post updates"] channel: ChannelId,
-   // #[description = "Fetch the total amount of bribes"]    total: bool,
+    // #[description = "Fetch the total amount of bribes"]    total: bool,
 ) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
     if !rolesofuser.unwrap().administrator()
@@ -77,8 +77,6 @@ pub async fn bribewatch(
         channel
     ))
     .await?;
-
-
 
     let mut messagehandle = channel
         .send_message(ctx.http(), |b| b.content("Starting setup!"))
@@ -101,7 +99,7 @@ pub async fn bribewatch(
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
     let mut hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
-    
+
     UPDATEBOOL.swap(false, Relaxed);
     let internaltxvec = arbscanclient
         .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
@@ -160,18 +158,15 @@ pub async fn bribewatch(
             format!("*Found {} contracts to watch!*", veccontracts.len()),
         )
         .await?;
-    
+
     let mut hashmapofamount: HashMap<H160, U256> = std::collections::HashMap::new();
 
     // if total {
     //     ctx.say("Getting the total amount of bribes. Note this may take a long time.").await?;
 
-
-
     // };
 
-
-    // Change the 1000 to go back further in time on use of the slash command. 
+    // Change the 1000 to go back further in time on use of the slash command.
     // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
     let mut lastblock = provider.get_block_number().await? - 1000;
 
@@ -179,14 +174,12 @@ pub async fn bribewatch(
         let currenttime = tokio::time::Instant::now();
         let currentblock = match provider.get_block_number().await {
             Ok(val) => val,
-            Err(_) => {                
-                match provider.get_block_number().await {
-                    Ok(val) => val,
-                    Err(_) => {
-                        continue 'mainloop;
-                    }
+            Err(_) => match provider.get_block_number().await {
+                Ok(val) => val,
+                Err(_) => {
+                    continue 'mainloop;
                 }
-            }
+            },
         };
         let status = format!("block {}", currentblock);
         poise::serenity_prelude::Context::set_activity(

@@ -1,3 +1,5 @@
 /target
 .env
 /src/commands/jsonfiles
+/temp.db
+history.txt
