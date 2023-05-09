@@ -2,15 +2,12 @@ use crate::{Error, DB};
 
 use ethers::{
     contract::abigen,
-    core::abi::AbiDecode,
-    providers::{Http, Middleware, Provider},
-    types::{Address, Chain, Filter, H160, H256, U256},
+    types::{Address, H160, H256, U256},
     utils::format_units,
 };
-use ethers_etherscan::account::InternalTxQueryOption;
+
 use lazy_static::lazy_static;
 
-use poise::serenity_prelude::{CacheHttp, UserId};
 use serde::{Deserialize, Serialize};
 
 use serenity::collector::component_interaction_collector::CollectComponentInteraction;
@@ -19,12 +16,10 @@ use serenity::utils::Colour;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use std::sync::Mutex;
 
-use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
-use surrealdb::Surreal;
 
 lazy_static! {
     static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
@@ -92,10 +87,7 @@ pub struct Token {
     pub listed_in: Vec<String>,
 }
 
-pub async fn allbribes(
-    ctx: poise::Context<'_, (), Error>,
-    ephemeral: bool,
-) -> Result<(), Error> {
+pub async fn allbribes(ctx: poise::Context<'_, (), Error>, ephemeral: bool) -> Result<(), Error> {
     // starts database in a local file
     // let db = match Surreal::new::<File>("temp.db").await {
     //     Ok(val) => val,
@@ -106,12 +98,11 @@ pub async fn allbribes(
     // // connects to the database with the right namescheme and name
     // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
-
-
     let bribevec: Vec<Bribe> = DB.select("bribe").await?;
     let pagelength = bribevec.len() / 20 + 1;
     if bribevec.is_empty() {
-        ctx.send(|b| {b.content("There are no bribes in the database")}.ephemeral(true)).await?;
+        ctx.send(|b| { b.content("There are no bribes in the database") }.ephemeral(true))
+            .await?;
         return Ok(());
     }
 
@@ -158,7 +149,6 @@ pub async fn allbribes(
                     .create_button(|b| b.custom_id(&next_button_id).emoji('▶'))
             })
         })
-        
     })
     .await?;
 

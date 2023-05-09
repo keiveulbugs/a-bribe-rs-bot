@@ -1,5 +1,5 @@
-use crate::commands::databasesetup::databasesetup;
 use crate::commands::allbribes::allbribes;
+use crate::commands::databasesetup::databasesetup;
 use crate::{Error, DB};
 
 use ethers::types::Address;
@@ -7,9 +7,7 @@ use ethers::types::Address;
 use poise::serenity_prelude::UserId;
 use serde::{Deserialize, Serialize};
 
-use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
-use surrealdb::Surreal;
 
 #[derive(Debug, Deserialize)]
 struct Record {
@@ -45,7 +43,7 @@ pub async fn database(
         bool,
     >,
     #[description = "Add your address to addressbook"] address: Option<String>,
-    #[description = "Get a list of all bribes up till now"] all: Option<Visibility>
+    #[description = "Get a list of all bribes up till now"] all: Option<Visibility>,
 ) -> Result<(), Error> {
     // Creates a new database and fetches bribes
     if startblock.is_some() {
@@ -137,9 +135,13 @@ pub async fn database(
     // Get total list of bribes
     if all.is_some() {
         match all.unwrap() {
-            Visibility::Public => {allbribes(ctx, false).await?;},
-            Visibility::Private => {allbribes(ctx, true).await?;},
-            Visibility::DM => {},
+            Visibility::Public => {
+                allbribes(ctx, false).await?;
+            }
+            Visibility::Private => {
+                allbribes(ctx, true).await?;
+            }
+            Visibility::DM => {}
         };
     }
     // Search the database

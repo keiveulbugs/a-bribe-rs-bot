@@ -22,9 +22,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use surrealdb::engine::local::File;
 use surrealdb::sql::Thing;
-use surrealdb::Surreal;
 
 lazy_static! {
     static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
@@ -303,7 +301,8 @@ pub async fn databasesetup(
     let bribevec: Vec<Bribe> = DB.select("bribe").await?;
     let pagelength = bribevec.len() / 20 + 1;
     if bribevec.is_empty() {
-        ctx.send(|b| {b.content("There are no bribes in the database")}.ephemeral(true)).await?;
+        ctx.send(|b| { b.content("There are no bribes in the database") }.ephemeral(true))
+            .await?;
         return Ok(());
     }
 

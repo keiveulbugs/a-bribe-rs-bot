@@ -13,11 +13,8 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
-use surrealdb::engine::local::File;
-use surrealdb::sql::Thing;
-use surrealdb::Surreal;
-use std::borrow::Cow;
 
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Bribe {
@@ -242,7 +239,6 @@ pub async fn bribewatch(
             let erctoken = Address::from(log.topics[2]);
             let fromaddress = Address::from(log.topics[1]);
 
-
             let amount = match U256::decode(log.data) {
                 Ok(val) => val,
                 Err(_) => {
@@ -334,22 +330,22 @@ pub async fn bribewatch(
                         })
                     })
                     .await?;
-                    // // database entry
-                    // let _querycreation: Bribe = db
-                    // .create("bribe")
-                    // .content(Bribe {
-                    //     pooladdress: log.address,
-                    //     tokenaddress: erctoken,
-                    //     poolname: poolname.into(),
-                    //     tokenname: tokenname.name.clone().into(),
-                    //     amount,
-                    //     sender: fromaddress,
-                    //     txhash :tx,
-                    //     block: logblocknumber.as_u64(),
-                    //     decimals,
-                    // })
-                    // .await?;
-                    // //dbg!(_querycreation);
+                // // database entry
+                // let _querycreation: Bribe = db
+                // .create("bribe")
+                // .content(Bribe {
+                //     pooladdress: log.address,
+                //     tokenaddress: erctoken,
+                //     poolname: poolname.into(),
+                //     tokenname: tokenname.name.clone().into(),
+                //     amount,
+                //     sender: fromaddress,
+                //     txhash :tx,
+                //     block: logblocknumber.as_u64(),
+                //     decimals,
+                // })
+                // .await?;
+                // //dbg!(_querycreation);
             } else {
                 let mut readableamount = match format_units(amount, "ether") {
                     Ok(val) => val,
