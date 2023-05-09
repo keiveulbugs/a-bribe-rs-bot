@@ -112,6 +112,7 @@ pub async fn allbribes(
     let pagelength = bribevec.len() / 20 + 1;
     if bribevec.is_empty() {
         ctx.send(|b| {b.content("There are no bribes in the database")}.ephemeral(true)).await?;
+        return Ok(());
     }
 
     let mut pagevec: Vec<(String, String, bool)> = vec![];
