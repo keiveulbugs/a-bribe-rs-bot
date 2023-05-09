@@ -25,8 +25,8 @@ pub async fn help(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {
     })
     .await?;
     // Change this id to the user that needs permissions to change the id.
-    if ctx.author().id != UserId(397118394714816513)
-        && ctx.author().id != UserId(320292370161598465)
+    if ctx.author().id == UserId(397118394714816513)
+        || ctx.author().id == UserId(320292370161598465)
     {
         poise::builtins::register_application_commands_buttons(ctx).await?;
     }

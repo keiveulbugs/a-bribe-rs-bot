@@ -4,12 +4,15 @@ use poise::serenity_prelude::{self as serenity};
 use std::sync::atomic::*;
 
 use surrealdb::engine::local::File;
-
+use surrealdb::engine::local::Db;
 use surrealdb::Surreal;
+use surrealdb::engine::any::Any;
 
 // These Atomic bools are shared across the modules to interact between commands
 pub static STOPBOOL: AtomicBool = AtomicBool::new(false);
 pub static UPDATEBOOL: AtomicBool = AtomicBool::new(true);
+pub static DB: Surreal<Db> = Surreal::init();
+
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -45,11 +48,23 @@ async fn on_ready(
 
     println!("Connecting the database");
 
-    match Surreal::new::<File>("temp.db").await {
+    // match Surreal::new::<File>("temp.db").await {
+    //     Ok(val) => val,
+    //     Err(_) => {
+    //         panic!("Couldn't create a datbase")
+    //     }
+    // };
+
+    
+    
+
+    match DB.connect::<File>("temp.db").await {
         Ok(val) => val,
-        Err(_) => {
-            panic!("Couldn't create a datbase")
-        }
+        Err(_) => panic!("failed to connect")
+    };
+    match DB.use_ns("bribebot").use_db("bribebotdb").await {
+        Ok(val) => val,
+        Err(_) => panic!("failed to use namescheme")
     };
 
     // To announce that the bot is online.

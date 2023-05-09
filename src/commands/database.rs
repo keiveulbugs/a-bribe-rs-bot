@@ -1,5 +1,6 @@
 use crate::commands::databasesetup::databasesetup;
-use crate::Error;
+use crate::commands::allbribes::allbribes;
+use crate::{Error, DB};
 
 use ethers::types::Address;
 
@@ -27,9 +28,8 @@ struct Contact {
 #[allow(non_camel_case_types)]
 pub enum Visibility {
     Private,
-    Private_with_dm,
     Public,
-    Public_with_dm,
+    DM,
 }
 
 //Option<Visibility>,
@@ -45,6 +45,7 @@ pub async fn database(
         bool,
     >,
     #[description = "Add your address to addressbook"] address: Option<String>,
+    #[description = "Get a list of all bribes up till now"] all: Option<Visibility>
 ) -> Result<(), Error> {
     // Creates a new database and fetches bribes
     if startblock.is_some() {
@@ -62,17 +63,17 @@ pub async fn database(
             ctx.say("You don't have enough rights to do this!").await?;
             return Ok(());
         }
-        let db = match Surreal::new::<File>("temp.db").await {
-            Ok(val) => val,
-            Err(_) => {
-                panic!("Couldn't connect to the database")
-            }
-        };
-        // connects to the database with the right namescheme and name
-        db.use_ns("bribebot").use_db("bribebotdb").await?;
+        // let db = match Surreal::new::<File>("temp.db").await {
+        //     Ok(val) => val,
+        //     Err(_) => {
+        //         panic!("Couldn't connect to the database")
+        //     }
+        // };
+        // // connects to the database with the right namescheme and name
+        // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
         // Deletes the database when requested by the user
-        let deletebribe: Vec<Record> = db.delete("bribe").await?;
+        let deletebribe: Vec<Record> = DB.delete("bribe").await?;
         ctx.send(|b| {
             b.content(format!("Deleted {} data entries", deletebribe.len()))
                 .ephemeral(true)
@@ -94,18 +95,18 @@ pub async fn database(
             }
         };
 
-        // starts database in a local file
-        let db = match Surreal::new::<File>("temp.db").await {
-            Ok(val) => val,
-            Err(_) => {
-                panic!("Couldn't connect to the database")
-            }
-        };
-        // connects to the database with the right namescheme and name
-        db.use_ns("bribebot").use_db("bribebotdb").await?;
+        // // starts database in a local file
+        // let db = match Surreal::new::<File>("temp.db").await {
+        //     Ok(val) => val,
+        //     Err(_) => {
+        //         panic!("Couldn't connect to the database")
+        //     }
+        // };
+        // // connects to the database with the right namescheme and name
+        // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
         // database entry
-        let _querycreation: Contact = match db
+        let _querycreation: Contact = match DB
             .create("contact")
             .content(Contact {
                 userid: ctx.author().id,
@@ -129,10 +130,19 @@ pub async fn database(
                 return Ok(());
             }
         };
-        dbg!(_querycreation);
+        //dbg!(_querycreation);
 
         return Ok(());
     }
+    // Get total list of bribes
+    if all.is_some() {
+        match all.unwrap() {
+            Visibility::Public => {allbribes(ctx, false).await?;},
+            Visibility::Private => {allbribes(ctx, true).await?;},
+            Visibility::DM => {},
+        };
+    }
+    // Search the database
 
     Ok(())
 }

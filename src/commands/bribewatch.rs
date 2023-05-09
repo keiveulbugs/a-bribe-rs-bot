@@ -13,6 +13,24 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
+use surrealdb::engine::local::File;
+use surrealdb::sql::Thing;
+use surrealdb::Surreal;
+use std::borrow::Cow;
+
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Bribe {
+    pooladdress: Address,
+    tokenaddress: Address,
+    poolname: Cow<'static, str>,
+    tokenname: Cow<'static, str>,
+    amount: U256,
+    sender: Address,
+    txhash: H256,
+    block: u64,
+    decimals: u64,
+}
 
 const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
 const ARBSCANKEY: &str = dotenv!("ARBSCAN");
@@ -42,7 +60,7 @@ pub struct Token {
     pub symbol: String,
     pub name: String,
     pub address: String,
-    pub decimals: i64,
+    pub decimals: u64,
     #[serde(rename = "chainId")]
     pub chain_id: i64,
     #[serde(rename = "logoURI")]
@@ -77,6 +95,33 @@ pub async fn bribewatch(
         channel
     ))
     .await?;
+
+    // starts database in a local file
+    // let db = match Surreal::new::<File>("temp.db").await {
+    //     Ok(val) => val,
+    //     Err(_) => {
+    //         panic!("Couldn't connect to the database")
+    //     }
+    // };
+    // // connects to the database with the right namescheme and name
+    // match db.use_ns("bribebot").use_db("bribebotdb").await {
+    //     Ok(val) => {
+    //         ctx.send(|b| {
+    //             b.content("Succesfully connected to the database")
+    //                 .ephemeral(true)
+    //         })
+    //         .await?;
+    //         val
+    //     }
+    //     Err(_) => {
+    //         ctx.send(|b| {
+    //             b.content("Couldn't connect to the database")
+    //                 .ephemeral(true)
+    //         })
+    //         .await?;
+    //     return Ok(());
+    //     }
+    // };
 
     let mut messagehandle = channel
         .send_message(ctx.http(), |b| b.content("Starting setup!"))
@@ -195,14 +240,8 @@ pub async fn bribewatch(
         // println!("{} transactions found!", logs.iter().len());
         'logs: for log in logs {
             let erctoken = Address::from(log.topics[2]);
-            let fromaddresstest = Address::from(log.topics[1]);
-            let fromadress = if fromaddresstest
-                == "0x98A1De08715800801E9764349F5A71cBe63F99cc".parse::<H160>()?
-            {
-                "Solid Lizard team!".to_string()
-            } else {
-                format!("0x{:X}", fromaddresstest)
-            };
+            let fromaddress = Address::from(log.topics[1]);
+
 
             let amount = match U256::decode(log.data) {
                 Ok(val) => val,
@@ -282,7 +321,7 @@ pub async fn bribewatch(
                         a.embed(|b| {
                             b.title(poolname)
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                                .field("Bribe creator", fromadress, false)
+                                .field("Bribe creator", format!("0x{:X}", fromaddress), false)
                                 .field("Token", tokenname.name.clone(), false)
                                 .field("Amount", readableamount, false)
                                 .thumbnail(imageurl)
@@ -295,6 +334,22 @@ pub async fn bribewatch(
                         })
                     })
                     .await?;
+                    // // database entry
+                    // let _querycreation: Bribe = db
+                    // .create("bribe")
+                    // .content(Bribe {
+                    //     pooladdress: log.address,
+                    //     tokenaddress: erctoken,
+                    //     poolname: poolname.into(),
+                    //     tokenname: tokenname.name.clone().into(),
+                    //     amount,
+                    //     sender: fromaddress,
+                    //     txhash :tx,
+                    //     block: logblocknumber.as_u64(),
+                    //     decimals,
+                    // })
+                    // .await?;
+                    // //dbg!(_querycreation);
             } else {
                 let mut readableamount = match format_units(amount, "ether") {
                     Ok(val) => val,
@@ -312,7 +367,7 @@ pub async fn bribewatch(
                         a.embed(|b| {
                             b.title(poolname)
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                                .field("Bribe creator", fromadress, false)
+                                .field("Bribe creator", format!("0x{:X}", fromaddress), false)
                                 .field("Token", format!("0x{:x}", erctoken), false)
                                 .field("Amount", readableamount, false)
                                 .footer(|f| {

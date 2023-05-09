@@ -1,5 +1,5 @@
 use crate::Error;
-
+use crate::DB;
 use ethers::{
     contract::abigen,
     core::abi::AbiDecode,
@@ -107,19 +107,19 @@ pub async fn databasesetup(
     }
     ctx.say("creating the database".to_string()).await?;
 
-    // starts database in a local file
-    let db = match Surreal::new::<File>("temp.db").await {
-        Ok(val) => val,
-        Err(_) => {
-            panic!("Couldn't connect to the database")
-        }
-    };
-    // connects to the database with the right namescheme and name
-    db.use_ns("bribebot").use_db("bribebotdb").await?;
+    // // starts database in a local file
+    // let db = match Surreal::new::<File>("temp.db").await {
+    //     Ok(val) => val,
+    //     Err(_) => {
+    //         panic!("Couldn't connect to the database")
+    //     }
+    // };
+    // // connects to the database with the right namescheme and name
+    // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
     // Deletes the database when requested by the user
     if delete {
-        let deletebribe: Vec<Record> = db.delete("bribe").await?;
+        let deletebribe: Vec<Record> = DB.delete("bribe").await?;
         ctx.send(|b| b.content(format!("Deleted {} data entries", deletebribe.len())))
             .await?;
     };
@@ -280,7 +280,7 @@ pub async fn databasesetup(
             };
 
             // database entry
-            let _querycreation: Bribe = db
+            let _querycreation: Bribe = DB
                 .create("bribe")
                 .content(Bribe {
                     pooladdress: log.address,
@@ -300,8 +300,11 @@ pub async fn databasesetup(
         tempend += 1000000;
     }
 
-    let bribevec: Vec<Bribe> = db.select("bribe").await?;
+    let bribevec: Vec<Bribe> = DB.select("bribe").await?;
     let pagelength = bribevec.len() / 20 + 1;
+    if bribevec.is_empty() {
+        ctx.send(|b| {b.content("There are no bribes in the database")}.ephemeral(true)).await?;
+    }
 
     let mut pagevec: Vec<(String, String, bool)> = vec![];
 
