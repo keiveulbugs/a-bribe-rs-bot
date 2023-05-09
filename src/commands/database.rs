@@ -30,7 +30,6 @@ pub enum Visibility {
     DM,
 }
 
-//Option<Visibility>,
 
 // Database setup command
 #[poise::command(slash_command)]
@@ -61,14 +60,6 @@ pub async fn database(
             ctx.say("You don't have enough rights to do this!").await?;
             return Ok(());
         }
-        // let db = match Surreal::new::<File>("temp.db").await {
-        //     Ok(val) => val,
-        //     Err(_) => {
-        //         panic!("Couldn't connect to the database")
-        //     }
-        // };
-        // // connects to the database with the right namescheme and name
-        // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
         // Deletes the database when requested by the user
         let deletebribe: Vec<Record> = DB.delete("bribe").await?;
@@ -92,16 +83,6 @@ pub async fn database(
                 return Ok(());
             }
         };
-
-        // // starts database in a local file
-        // let db = match Surreal::new::<File>("temp.db").await {
-        //     Ok(val) => val,
-        //     Err(_) => {
-        //         panic!("Couldn't connect to the database")
-        //     }
-        // };
-        // // connects to the database with the right namescheme and name
-        // db.use_ns("bribebot").use_db("bribebotdb").await?;
 
         // database entry
         let _querycreation: Contact = match DB

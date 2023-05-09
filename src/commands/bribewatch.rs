@@ -1,4 +1,4 @@
-use crate::{Error, STOPBOOL, UPDATEBOOL};
+use crate::{Error, STOPBOOL, UPDATEBOOL, DB};
 use chrono::{prelude::Utc, DateTime};
 use ethers::{
     contract::abigen,
@@ -15,6 +15,16 @@ use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
 
 use std::borrow::Cow;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
+
+lazy_static! {
+    static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Bribe {
@@ -93,33 +103,6 @@ pub async fn bribewatch(
     ))
     .await?;
 
-    // starts database in a local file
-    // let db = match Surreal::new::<File>("temp.db").await {
-    //     Ok(val) => val,
-    //     Err(_) => {
-    //         panic!("Couldn't connect to the database")
-    //     }
-    // };
-    // // connects to the database with the right namescheme and name
-    // match db.use_ns("bribebot").use_db("bribebotdb").await {
-    //     Ok(val) => {
-    //         ctx.send(|b| {
-    //             b.content("Succesfully connected to the database")
-    //                 .ephemeral(true)
-    //         })
-    //         .await?;
-    //         val
-    //     }
-    //     Err(_) => {
-    //         ctx.send(|b| {
-    //             b.content("Couldn't connect to the database")
-    //                 .ephemeral(true)
-    //         })
-    //         .await?;
-    //     return Ok(());
-    //     }
-    // };
-
     let mut messagehandle = channel
         .send_message(ctx.http(), |b| b.content("Starting setup!"))
         .await?;
@@ -140,7 +123,6 @@ pub async fn bribewatch(
     let address: Address = BRIBEFACTORY.parse()?;
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
-    let mut hashmapofpools: HashMap<H160, String> = std::collections::HashMap::new();
 
     UPDATEBOOL.swap(false, Relaxed);
     let internaltxvec = arbscanclient
@@ -171,7 +153,7 @@ pub async fn bribewatch(
                 Err(_) => "A new Bribe occurred!".to_string(),
             };
 
-            hashmapofpools.insert(*ad, name);
+            HASHMAPOFPOOLS.lock().unwrap().insert(*ad, name);
             count += 1;
             if count % 10 == 0 {
                 messagehandle
@@ -195,12 +177,6 @@ pub async fn bribewatch(
         )
         .await?;
 
-    let _hashmapofamount: HashMap<H160, U256> = std::collections::HashMap::new();
-
-    // if total {
-    //     ctx.say("Getting the total amount of bribes. Note this may take a long time.").await?;
-
-    // };
 
     // Change the 1000 to go back further in time on use of the slash command.
     // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
@@ -285,10 +261,12 @@ pub async fn bribewatch(
                 Utc,
             );
 
-            let poolname = match hashmapofpools.get(&log.address) {
-                Some(val) => val,
-                _ => "A new Bribe occurred",
+            let poolname = match HASHMAPOFPOOLS.lock().unwrap().get(&log.address) {
+                Some(val) => val.to_string(),
+                _ => "A new Bribe occurred".to_string(),
             };
+            let mut tokennameclean = "Unknown".to_string();
+            let mut decimals = 18;
 
             if let Some(tokenname) = token
                 .iter()
@@ -299,8 +277,8 @@ pub async fn bribewatch(
                     .clone()
                     .ok_or("https://solidlizard.finance/images/ui/lz-logo.png".to_string())?;
 
-                let decimals = tokenname.decimals;
-
+                decimals = tokenname.decimals;
+                tokennameclean = tokenname.clone().name;
                 let mut readableamount = match format_units(amount, decimals as u32) {
                     Ok(val) => val,
                     Err(_) => "Unknown".to_string(),
@@ -315,7 +293,7 @@ pub async fn bribewatch(
                 channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
-                            b.title(poolname)
+                            b.title(poolname.clone())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", format!("0x{:X}", fromaddress), false)
                                 .field("Token", tokenname.name.clone(), false)
@@ -330,22 +308,6 @@ pub async fn bribewatch(
                         })
                     })
                     .await?;
-                // // database entry
-                // let _querycreation: Bribe = db
-                // .create("bribe")
-                // .content(Bribe {
-                //     pooladdress: log.address,
-                //     tokenaddress: erctoken,
-                //     poolname: poolname.into(),
-                //     tokenname: tokenname.name.clone().into(),
-                //     amount,
-                //     sender: fromaddress,
-                //     txhash :tx,
-                //     block: logblocknumber.as_u64(),
-                //     decimals,
-                // })
-                // .await?;
-                // //dbg!(_querycreation);
             } else {
                 let mut readableamount = match format_units(amount, "ether") {
                     Ok(val) => val,
@@ -361,7 +323,7 @@ pub async fn bribewatch(
                 channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
-                            b.title(poolname)
+                            b.title(poolname.clone())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
                                 .field("Bribe creator", format!("0x{:X}", fromaddress), false)
                                 .field("Token", format!("0x{:x}", erctoken), false)
@@ -376,6 +338,22 @@ pub async fn bribewatch(
                     })
                     .await?;
             }
+                // database entry
+                let _querycreation: Bribe = DB
+                .create("bribe")
+                .content(Bribe {
+                    pooladdress: log.address,
+                    tokenaddress: erctoken,
+                    poolname: poolname.into(),
+                    tokenname: tokennameclean.into(),
+                    amount,
+                    sender: fromaddress,
+                    txhash :tx,
+                    block: logblocknumber.as_u64(),
+                    decimals,
+                })
+                .await?;
+                //dbg!(_querycreation);
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
@@ -396,7 +374,7 @@ pub async fn bribewatch(
             if UPDATEBOOL.load(Relaxed) {
                 UPDATEBOOL.swap(false, Relaxed);
                 ctx.say("Started updating the bot").await?;
-                hashmapofpools.clear();
+                HASHMAPOFPOOLS.lock().unwrap().clear();
                 veccontracts.clear();
                 veccontracts.push("0x98A1De08715800801E9764349F5A71cBe63F99cd".parse::<H160>()?);
                 let internaltxvec = arbscanclient
@@ -424,7 +402,7 @@ pub async fn bribewatch(
                             Err(_) => "A new Bribe occurred!".to_string(),
                         };
 
-                        hashmapofpools.insert(*ad, name);
+                        HASHMAPOFPOOLS.lock().unwrap().insert(*ad, name);
                         count += 1;
                         if count % 10 == 0 {
                             messagehandle
