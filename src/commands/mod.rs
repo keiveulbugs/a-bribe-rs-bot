@@ -5,4 +5,3 @@ pub mod database;
 pub mod databasesetup;
 pub mod help;
 pub mod stop;
-pub mod total_bribes;

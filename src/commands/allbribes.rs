@@ -47,8 +47,7 @@ struct Record {
     #[allow(dead_code)]
     id: Thing,
 }
-const BRIBEFACTORY: &str = dotenv!("BRIBEFACTORY");
-const ARBSCANKEY: &str = dotenv!("ARBSCAN");
+
 
 abigen!(
     BribeContract,

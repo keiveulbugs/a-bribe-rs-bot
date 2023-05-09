@@ -78,7 +78,6 @@ async fn main() {
             commands: vec![
                 commands::stop::stop(),
                 commands::contract_update::contract_update(),
-                //commands::total_bribes::total_bribes(),
                 commands::database::database(),
                 commands::help::help(),
                 commands::bribewatch::bribewatch(),
