@@ -48,7 +48,6 @@ struct Record {
     id: Thing,
 }
 
-
 abigen!(
     BribeContract,
     r#"[
@@ -87,7 +86,6 @@ pub struct Token {
 }
 
 pub async fn allbribes(ctx: poise::Context<'_, (), Error>, ephemeral: bool) -> Result<(), Error> {
-
     let bribevec: Vec<Bribe> = DB.select("bribe").await?;
     let pagelength = bribevec.len() / 20 + 1;
     if bribevec.is_empty() {
@@ -211,8 +209,7 @@ pub async fn allbribes(ctx: poise::Context<'_, (), Error>, ephemeral: bool) -> R
 
 pub async fn dmallbribes(ctx: poise::Context<'_, (), Error>) -> Result<(), Error> {
     ctx.send(|b| { b.content("Sending you a DM") }.ephemeral(true))
-    .await?;
-
+        .await?;
 
     let bribevec: Vec<Bribe> = DB.select("bribe").await?;
     let pagelength = bribevec.len() / 20 + 1;
@@ -246,26 +243,27 @@ pub async fn dmallbribes(ctx: poise::Context<'_, (), Error>) -> Result<(), Error
 
     // Send the embed with the first page as content
 
-    ctx.author().dm(ctx,|b| {
-        b.embed(|b| {
-            b.description(format!(
-                "**Bribes {}-{}/{}**",
-                pagecount * 20,
-                pagecount * 20 + pagevec.len(),
-                bribevec.len()
-            ))
-            .fields(pagevec.clone())
-            .footer(|f| f.text(format!("Page {}/{}", pagecount + 1, pagelength)))
-            .colour(Colour::BLITZ_BLUE)
-        })
-        .components(|b| {
-            b.create_action_row(|b| {
-                b.create_button(|b| b.custom_id(&prev_button_id).emoji('◀'))
-                    .create_button(|b| b.custom_id(&next_button_id).emoji('▶'))
+    ctx.author()
+        .dm(ctx, |b| {
+            b.embed(|b| {
+                b.description(format!(
+                    "**Bribes {}-{}/{}**",
+                    pagecount * 20,
+                    pagecount * 20 + pagevec.len(),
+                    bribevec.len()
+                ))
+                .fields(pagevec.clone())
+                .footer(|f| f.text(format!("Page {}/{}", pagecount + 1, pagelength)))
+                .colour(Colour::BLITZ_BLUE)
+            })
+            .components(|b| {
+                b.create_action_row(|b| {
+                    b.create_button(|b| b.custom_id(&prev_button_id).emoji('◀'))
+                        .create_button(|b| b.custom_id(&next_button_id).emoji('▶'))
+                })
             })
         })
-    })
-    .await?;
+        .await?;
 
     // Loop through incoming interactions with the navigation buttons
 
@@ -332,7 +330,4 @@ pub async fn dmallbribes(ctx: poise::Context<'_, (), Error>) -> Result<(), Error
     }
 
     Ok(())
-
-
-
 }

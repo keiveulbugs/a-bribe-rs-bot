@@ -1,4 +1,4 @@
-use crate::{Error, STOPBOOL, UPDATEBOOL, DB};
+use crate::{Error, DB, STOPBOOL, UPDATEBOOL};
 use chrono::{prelude::Utc, DateTime};
 use ethers::{
     contract::abigen,
@@ -14,10 +14,9 @@ use serde_derive::Serialize;
 use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::Ordering::Relaxed};
 
-use std::borrow::Cow;
 use lazy_static::lazy_static;
+use std::borrow::Cow;
 use std::sync::Mutex;
-
 
 lazy_static! {
     static ref HASHMAPOFPOOLS: Mutex<HashMap<H160, String>> = {
@@ -123,7 +122,6 @@ pub async fn bribewatch(
     let address: Address = BRIBEFACTORY.parse()?;
     let arbscanclient = ethers_etherscan::Client::new(Chain::Arbitrum, ARBSCANKEY)?;
 
-
     UPDATEBOOL.swap(false, Relaxed);
     let internaltxvec = arbscanclient
         .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
@@ -176,7 +174,6 @@ pub async fn bribewatch(
             format!("*Found {} contracts to watch!*", veccontracts.len()),
         )
         .await?;
-
 
     // Change the 1000 to go back further in time on use of the slash command.
     // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
@@ -338,8 +335,8 @@ pub async fn bribewatch(
                     })
                     .await?;
             }
-                // database entry
-                let _querycreation: Bribe = DB
+            // database entry
+            let _querycreation: Bribe = DB
                 .create("bribe")
                 .content(Bribe {
                     pooladdress: log.address,
@@ -348,12 +345,12 @@ pub async fn bribewatch(
                     tokenname: tokennameclean.into(),
                     amount,
                     sender: fromaddress,
-                    txhash :tx,
+                    txhash: tx,
                     block: logblocknumber.as_u64(),
                     decimals,
                 })
                 .await?;
-                //dbg!(_querycreation);
+            //dbg!(_querycreation);
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }

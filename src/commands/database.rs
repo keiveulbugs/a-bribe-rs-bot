@@ -43,6 +43,7 @@ pub async fn database(
     >,
     #[description = "Add your address to addressbook"] address: Option<String>,
     #[description = "Get a list of all bribes up till now"] all: Option<Visibility>,
+    #[description = "Perform a custom search"] search: Option<bool>,
 ) -> Result<(), Error> {
     // Creates a new database and fetches bribes
     if startblock.is_some() {
@@ -51,7 +52,7 @@ pub async fn database(
         databasesetup(ctx, delete, startblock.unwrap()).await?;
     }
     // deletes all bribes in a database without creating a new one
-    if delete.is_some() && startblock.is_none() {
+    if delete.is_some() && delete.unwrap()==true && startblock.is_none() {
         let rolesofuser = ctx.author_member().await.unwrap().permissions;
         if !rolesofuser.unwrap().administrator()
             && ctx.author().id != UserId(397118394714816513)
@@ -128,6 +129,13 @@ pub async fn database(
         };
     }
     // Search the database
+    if search.is_some() {
+        let mut result = DB.query("SELECT * FROM *").await?;
+        ctx.say("hellooo").await?;
+        dbg!(result);
+    }
+
+
 
     Ok(())
 }
