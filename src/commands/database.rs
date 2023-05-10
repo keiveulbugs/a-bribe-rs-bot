@@ -122,7 +122,9 @@ pub async fn database(
             Visibility::Private => {
                 allbribes(ctx, true).await?;
             }
-            Visibility::DM => {}
+            Visibility::DM => {
+                crate::commands::allbribes::dmallbribes(ctx).await?;
+            }
         };
     }
     // Search the database
