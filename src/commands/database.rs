@@ -2,6 +2,8 @@ use crate::commands::allbribes::allbribes;
 use crate::commands::databasesetup::databasesetup;
 use crate::{Error, DB};
 
+
+
 use ethers::types::Address;
 
 use poise::serenity_prelude::UserId;
@@ -134,8 +136,7 @@ pub async fn database(
         ctx.say("hellooo").await?;
         dbg!(result);
     }
-
-
+    
 
     Ok(())
 }
