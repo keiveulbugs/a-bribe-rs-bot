@@ -26,3 +26,6 @@ openssl = { version = "0.10.45", features = ["vendored"] }
 version = "0.28.0"
 features = ["bundled"]
       
+
+[profile.release]
+lto = "fat"      

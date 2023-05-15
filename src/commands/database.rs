@@ -140,3 +140,4 @@ pub async fn database(
 
     Ok(())
 }
+//note: use the `cargo:rustc-link-lib` directive to specify the native libraries to link with Cargo (see https://doc.rust-lang.org/cargo/reference/build-scripts.html#cargorustc-link-libkindname
