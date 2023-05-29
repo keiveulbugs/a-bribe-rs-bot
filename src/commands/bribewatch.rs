@@ -206,7 +206,10 @@ pub async fn bribewatch(
             )
             .address(veccontracts.clone());
 
-        let logs = client.get_logs(&filter).await?;
+        let logs = match client.get_logs(&filter).await {
+            Ok(val) => val,
+            Err(_) => continue 'mainloop,
+        };
         // println!("{} transactions found!", logs.iter().len());
         'logs: for log in logs {
             let erctoken = Address::from(log.topics[2]);
@@ -287,7 +290,7 @@ pub async fn bribewatch(
                     None => readableamount = "Unknown".to_string(),
                 };
 
-                channel
+                match channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
                             b.title(poolname.clone())
@@ -304,7 +307,10 @@ pub async fn bribewatch(
                                 .timestamp(utc)
                         })
                     })
-                    .await?;
+                    .await {
+                        Ok(val) => val,
+                        Err(_) => continue 'logs,
+                    };
             } else {
                 let mut readableamount = match format_units(amount, "ether") {
                     Ok(val) => val,
@@ -317,7 +323,7 @@ pub async fn bribewatch(
                     None => readableamount = "Unknown".to_string(),
                 };
 
-                channel
+                match channel
                     .send_message(ctx.http(), |a| {
                         a.embed(|b| {
                             b.title(poolname.clone())
@@ -333,10 +339,13 @@ pub async fn bribewatch(
                                 .timestamp(utc)
                         })
                     })
-                    .await?;
+                    .await {
+                        Ok(val) => val,
+                        Err(_) => continue 'logs,
+                    };
             }
             // database entry
-            let _querycreation: Bribe = DB
+            let _querycreation: Bribe = match DB
                 .create("bribe")
                 .content(Bribe {
                     pooladdress: log.address,
@@ -349,7 +358,10 @@ pub async fn bribewatch(
                     block: logblocknumber.as_u64(),
                     decimals,
                 })
-                .await?;
+                .await {
+                    Ok(val) => val,
+                    Err(_) => continue 'logs,
+                };
             //dbg!(_querycreation);
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

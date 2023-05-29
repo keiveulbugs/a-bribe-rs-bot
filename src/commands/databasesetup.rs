@@ -34,7 +34,7 @@ lazy_static! {
 //static mut HASHMAPOFPOOLS: HashMap<H160, String> = std::collections::HashMap::new();
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Bribe {
+pub struct Bribe {
     pooladdress: Address,
     tokenaddress: Address,
     poolname: Cow<'static, str>,
@@ -134,6 +134,7 @@ pub async fn databasesetup(
             .await?;
     let jsontoken: Logos = response.json().await?;
     let token = jsontoken.tokens;
+    
 
     // Connect to the chain rpc provider, connect to the explorer, create a vec of all smart contract addresses.
     let provider = Provider::<Http>::try_from("https://arb1.arbitrum.io/rpc")?;

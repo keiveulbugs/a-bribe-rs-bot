@@ -1,8 +1,12 @@
+use std::iter::Sum;
+use std::{dbg, println};
+
 use crate::commands::allbribes::allbribes;
 use crate::commands::databasesetup::databasesetup;
 use crate::{Error, DB};
 
-
+use std::borrow::Cow;
+use bigdecimal::BigDecimal;
 
 use ethers::types::Address;
 
@@ -10,6 +14,15 @@ use poise::serenity_prelude::UserId;
 use serde::{Deserialize, Serialize};
 
 use surrealdb::sql::Thing;
+
+#[derive(Debug, Deserialize)]
+struct Sumup {
+    sum: BigDecimal,
+    poolname: String,
+    tokenname: String,   
+}
+
+
 
 #[derive(Debug, Deserialize)]
 struct Record {
@@ -132,9 +145,33 @@ pub async fn database(
     }
     // Search the database
     if search.is_some() {
-        let mut result = DB.query("SELECT * FROM *").await?;
+        /*
+        pub struct Bribe {
+    pooladdress: Address,
+    tokenaddress: Address,
+    poolname: Cow<'static, str>,
+    tokenname: Cow<'static, str>,
+    amount: U256,
+    sender: Address,
+    txhash: H256,
+    block: u64,
+    decimals: u64,
+}
+         */
+
+        let mut result= DB.query("SELECT math::sum(amount), poolname, tokenname FROM bribe GROUP BY tokenname, poolname").await?;
         ctx.say("hellooo").await?;
-        dbg!(result);
+
+
+
+
+        let resultclean :Vec<Sumup> = result.take(0)?;
+
+
+
+        println!("wut {:#?}", resultclean);
+       // println!("wut {:#?}", result.);
+
     }
     
 
