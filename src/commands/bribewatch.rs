@@ -247,10 +247,13 @@ pub async fn bribewatch(
                     continue 'logs;
                 }
             };
-            println!("search {}", fromaddress);
-            let mut result= DB.query("select userid from contact where address='$currentaddress'").bind(("currentaddress", fromaddress)).await?;
-            dbg!(result);
-            println!("end search");
+            let mut result= DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await?;
+            let cleanresult :Vec<String> = result.take((0, "userid")).unwrap();
+            let cleanedfrom = if cleanresult.is_empty() {
+                format!("0x{:X}", fromaddress)
+            } else {
+                cleanresult[0].clone()
+            };
             let time = block.timestamp;
 
             // The old way of getting the utc from the time is a lot cleaner, however, a new way is needed as seen below to avoid it crashing when we go over 262 000 years.
@@ -299,7 +302,7 @@ pub async fn bribewatch(
                         a.embed(|b| {
                             b.title(poolname.clone())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                                .field("Bribe creator", format!("0x{:X}", fromaddress), false)
+                                .field("Bribe creator", cleanedfrom, false)
                                 .field("Token", tokenname.name.clone(), false)
                                 .field("Amount", readableamount, false)
                                 .thumbnail(imageurl)
@@ -332,7 +335,7 @@ pub async fn bribewatch(
                         a.embed(|b| {
                             b.title(poolname.clone())
                                 .url(format!("https://arbiscan.io/tx/0x{:x}", tx))
-                                .field("Bribe creator", format!("0x{:X}", fromaddress), false)
+                                .field("Bribe creator", cleanedfrom, false)
                                 .field("Token", format!("0x{:x}", erctoken), false)
                                 .field("Amount", readableamount, false)
                                 .footer(|f| {
