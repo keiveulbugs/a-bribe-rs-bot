@@ -178,6 +178,7 @@ pub async fn bribewatch(
     // Change the 1000 to go back further in time on use of the slash command.
     // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
     let mut lastblock = provider.get_block_number().await? - 1000;
+    lastblock = 95947082.into();
 
     'mainloop: loop {
         let currenttime = tokio::time::Instant::now();
@@ -246,7 +247,10 @@ pub async fn bribewatch(
                     continue 'logs;
                 }
             };
-
+            println!("search {}", fromaddress);
+            let mut result= DB.query("select userid from contact where address='$currentaddress'").bind(("currentaddress", fromaddress)).await?;
+            dbg!(result);
+            println!("end search");
             let time = block.timestamp;
 
             // The old way of getting the utc from the time is a lot cleaner, however, a new way is needed as seen below to avoid it crashing when we go over 262 000 years.

@@ -22,7 +22,7 @@ extern crate dotenv_codegen;
 // Your Bot token
 const DISCORD_TOKEN: &str = dotenv!("DISCORD_TOKEN");
 // This should be your guild id.
-const PRIVATEGUILDID: serenity::GuildId = serenity::GuildId(1052280052496216155);
+const PRIVATEGUILDID: serenity::GuildId = serenity::GuildId(1014660478351454299);
 
 async fn on_ready(
     ctx: &serenity::Context,

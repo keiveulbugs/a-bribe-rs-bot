@@ -32,7 +32,7 @@ struct Record {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Contact {
-    userid: UserId,
+    userid: String,
     address: Address,
 }
 
@@ -57,6 +57,7 @@ pub async fn database(
         bool,
     >,
     #[description = "Add your address to addressbook"] address: Option<String>,
+    #[description = "Use a custom name instead of your Discord name"] customname: Option<String>,
     #[description = "Get a list of all bribes up till now"] all: Option<Visibility>,
     #[description = "Perform a custom search"] search: Option<bool>,
 ) -> Result<(), Error> {
@@ -99,12 +100,17 @@ pub async fn database(
                 return Ok(());
             }
         };
+        let username = if customname.is_some() {
+            customname.unwrap()
+        } else {
+            format!("<@{}>", ctx.author().id)
+        };
 
         // database entry
         let _querycreation: Contact = match DB
             .create("contact")
             .content(Contact {
-                userid: ctx.author().id,
+                userid: username,
                 address,
             })
             .await
@@ -158,18 +164,21 @@ pub async fn database(
     decimals: u64,
 }
          */
-
-        let mut result= DB.query("SELECT math::sum(amount), poolname, tokenname FROM bribe GROUP BY tokenname, poolname").await?;
+        let fromaddress = "0x5318f07a3a20a2f8bb0ddf14f1dd58c517a76508".parse::<ethers::types::H160 >()?;
+        //let mut result= DB.query("SELECT math::sum(amount), poolname, tokenname FROM bribe GROUP BY tokenname, poolname").await?;
         ctx.say("hellooo").await?;
+        let mut result= DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await?;
+        let cleanresult :Vec<String> = result.take((0, "userid")).unwrap();
+
+
+        dbg!(&result);
+        dbg!(cleanresult);
+
+        //let resultclean :Vec<Sumup> = result.take(0)?;
 
 
 
-
-        let resultclean :Vec<Sumup> = result.take(0)?;
-
-
-
-        println!("wut {:#?}", resultclean);
+       // println!("wut {:#?}", resultclean);
        // println!("wut {:#?}", result.);
 
     }
