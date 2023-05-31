@@ -247,13 +247,34 @@ pub async fn bribewatch(
                     continue 'logs;
                 }
             };
-            let mut result= DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await?;
-            let cleanresult :Vec<String> = result.take((0, "userid")).unwrap();
-            let cleanedfrom = if cleanresult.is_empty() {
-                format!("0x{:X}", fromaddress)
-            } else {
-                cleanresult[0].clone()
-            };
+            // let mut cleanedfrom = match DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await {
+            //     Ok(result) = match result.take((0, "userid")) {
+            //         Ok(val) => val[0].clone(),
+            //         Err(_) => format!("0x{:X}", fromaddress),
+            //     },
+            //     Err(_) => format!("0x{:X}", fromaddress),
+            // };
+
+
+            // This gets the first name related to the address, otherwise it uses the fromaddress.
+            let cleanedfrom = match DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await {
+                Ok(mut result) => {
+                    match result.take::<Vec<String>>((0, "userid")) {
+                        Ok(cleanresult ) => {
+                            if !cleanresult.is_empty() {
+                                cleanresult[0].clone()
+                            } else {
+                                format!("0x{:X}", fromaddress)
+                            }
+                        },
+                        Err(_) => {
+                            format!("0x{:X}", fromaddress)
+                        },
+                    }
+                },
+                Err(_) => {format!("0x{:X}", fromaddress)},
+            };    
+
             let time = block.timestamp;
 
             // The old way of getting the utc from the time is a lot cleaner, however, a new way is needed as seen below to avoid it crashing when we go over 262 000 years.
