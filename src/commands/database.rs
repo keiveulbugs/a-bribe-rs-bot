@@ -1,12 +1,12 @@
-use std::iter::Sum;
-use std::{dbg, println};
+
+
 
 use crate::commands::allbribes::allbribes;
 use crate::commands::databasesetup::databasesetup;
 use crate::{Error, DB};
 
-use bigdecimal::BigDecimal;
-use std::borrow::Cow;
+
+
 
 use ethers::types::Address;
 
@@ -65,7 +65,7 @@ pub async fn database(
         databasesetup(ctx, delete, startblock.unwrap()).await?;
     }
     // deletes all bribes in a database without creating a new one
-    if delete.is_some() && delete.unwrap() == true && startblock.is_none() {
+    if delete.is_some() && delete.unwrap() && startblock.is_none() {
         let rolesofuser = ctx.author_member().await.unwrap().permissions;
         if !rolesofuser.unwrap().administrator()
             && ctx.author().id != UserId(397118394714816513)
