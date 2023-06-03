@@ -134,7 +134,6 @@ pub async fn databasesetup(
             .await?;
     let jsontoken: Logos = response.json().await?;
     let token = jsontoken.tokens;
-    
 
     // Connect to the chain rpc provider, connect to the explorer, create a vec of all smart contract addresses.
     let provider = Provider::<Http>::try_from("https://arb1.arbitrum.io/rpc")?;

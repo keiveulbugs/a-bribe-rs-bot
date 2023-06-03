@@ -150,21 +150,19 @@ pub async fn allbribes(ctx: poise::Context<'_, (), Error>, ephemeral: bool) -> R
         .timeout(std::time::Duration::from_secs(3600))
         .await
     {
-
         // Depending on which button was pressed, go to next or previous page
-        if press.data.custom_id == next_button_id && pagecount < pagelength -1 {
+        if press.data.custom_id == next_button_id && pagecount < pagelength - 1 {
             pagecount += 1;
         } else if press.data.custom_id == next_button_id {
             pagecount = 0;
         } else if press.data.custom_id == prev_button_id && pagecount > 0 {
             pagecount -= 1;
         } else if press.data.custom_id == prev_button_id {
-            pagecount = pagelength -1 ;
+            pagecount = pagelength - 1;
         } else {
             // This is an unrelated button interaction
             continue;
         }
-
 
         pagevec.clear();
         for bribes in bribevec.iter().skip(20 * pagecount).take(20) {
@@ -264,24 +262,24 @@ pub async fn dmallbribes(ctx: poise::Context<'_, (), Error>) -> Result<(), Error
         .await?;
 
     // Loop through incoming interactions with the navigation buttons
-        
+
     while let Some(press) = CollectComponentInteraction::new(ctx)
         // We defined our button IDs to start with `ctx_id`. If they don't, some other command's
         // button was pressed
         .filter(move |press| press.data.custom_id.starts_with(&ctx_id.to_string()))
         // Timeout when no navigation button has been pressed for 24 hours
-        .timeout(std::time::Duration::from_secs(3600*24))
+        .timeout(std::time::Duration::from_secs(3600 * 24))
         .await
     {
         // Depending on which button was pressed, go to next or previous page
-        if press.data.custom_id == next_button_id && pagecount < pagelength -1 {
+        if press.data.custom_id == next_button_id && pagecount < pagelength - 1 {
             pagecount += 1;
         } else if press.data.custom_id == next_button_id {
             pagecount = 0;
         } else if press.data.custom_id == prev_button_id && pagecount > 0 {
             pagecount -= 1;
         } else if press.data.custom_id == prev_button_id {
-            pagecount = pagelength -1 ;
+            pagecount = pagelength - 1;
         } else {
             // This is an unrelated button interaction
             continue;

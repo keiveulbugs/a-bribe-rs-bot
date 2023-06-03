@@ -5,8 +5,8 @@ use crate::commands::allbribes::allbribes;
 use crate::commands::databasesetup::databasesetup;
 use crate::{Error, DB};
 
-use std::borrow::Cow;
 use bigdecimal::BigDecimal;
+use std::borrow::Cow;
 
 use ethers::types::Address;
 
@@ -17,12 +17,10 @@ use surrealdb::sql::Thing;
 
 #[derive(Debug, Deserialize)]
 struct Sumup {
-    sum: BigDecimal,
+    sum_amount: ethers::types::U256,
     poolname: String,
-    tokenname: String,   
+    tokenname: String,
 }
-
-
 
 #[derive(Debug, Deserialize)]
 struct Record {
@@ -45,7 +43,6 @@ pub enum Visibility {
     DM,
 }
 
-
 // Database setup command
 #[poise::command(slash_command)]
 pub async fn database(
@@ -59,7 +56,7 @@ pub async fn database(
     #[description = "Add your address to addressbook"] address: Option<String>,
     #[description = "Use a custom name instead of your Discord name"] customname: Option<String>,
     #[description = "Get a list of all bribes up till now"] all: Option<Visibility>,
-    #[description = "Perform a custom search"] search: Option<bool>,
+    //#[description = "Perform a custom search"] search: Option<bool>,
 ) -> Result<(), Error> {
     // Creates a new database and fetches bribes
     if startblock.is_some() {
@@ -68,7 +65,7 @@ pub async fn database(
         databasesetup(ctx, delete, startblock.unwrap()).await?;
     }
     // deletes all bribes in a database without creating a new one
-    if delete.is_some() && delete.unwrap()==true && startblock.is_none() {
+    if delete.is_some() && delete.unwrap() == true && startblock.is_none() {
         let rolesofuser = ctx.author_member().await.unwrap().permissions;
         if !rolesofuser.unwrap().administrator()
             && ctx.author().id != UserId(397118394714816513)
@@ -150,39 +147,36 @@ pub async fn database(
         };
     }
     // Search the database
-    if search.is_some() {
-        /*
-        pub struct Bribe {
-    pooladdress: Address,
-    tokenaddress: Address,
-    poolname: Cow<'static, str>,
-    tokenname: Cow<'static, str>,
-    amount: U256,
-    sender: Address,
-    txhash: H256,
-    block: u64,
-    decimals: u64,
-}
-         */
-        let fromaddress = "0x5318f07a3a20a2f8bb0ddf14f1dd58c517a76500".parse::<ethers::types::H160 >()?;
-        //let mut result= DB.query("SELECT math::sum(amount), poolname, tokenname FROM bribe GROUP BY tokenname, poolname").await?;
-        ctx.say("hellooo").await?;
-        let mut result= DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await?;
-        let cleanresult :Vec<String> = result.take((0, "userid")).unwrap();
+    //     if search.is_some() {
+    //         /*
+    //         pub struct Bribe {
+    //     pooladdress: Address,
+    //     tokenaddress: Address,
+    //     poolname: Cow<'static, str>,
+    //     tokenname: Cow<'static, str>,
+    //     amount: U256,
+    //     sender: Address,
+    //     txhash: H256,
+    //     block: u64,
+    //     decimals: u64,
+    // }
+    //          */
+    //        // let fromaddress = "0x5318f07a3a20a2f8bb0ddf14f1dd58c517a76500".parse::<ethers::types::H160 >()?;
+    //         let mut result= DB.query("SELECT math::sum(amount), poolname, tokenname FROM bribe GROUP BY tokenname, poolname").await?;
+    //         ctx.say("hellooo").await?;
+    //         //let mut result= DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await?;
+    //        // let cleanresult :Vec<String> = result.take((0, "userid")).unwrap();
 
+    //         // dbg!(&result);
+    //         // dbg!(cleanresult);
 
-        dbg!(&result);
-        dbg!(cleanresult);
+    //         let resultclean :Vec<Sumup> = result.take(0).unwrap();
+    //         println!("result {:#?}", resultclean);
 
-        //let resultclean :Vec<Sumup> = result.take(0)?;
+    //        // println!("wut {:#?}", resultclean);
+    //        // println!("wut {:#?}", result.);
 
-
-
-       // println!("wut {:#?}", resultclean);
-       // println!("wut {:#?}", result.);
-
-    }
-    
+    //     }
 
     Ok(())
 }

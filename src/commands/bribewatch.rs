@@ -4,7 +4,7 @@ use ethers::{
     contract::abigen,
     core::abi::AbiDecode,
     providers::{Http, Middleware, Provider},
-    types::{Address, Chain, Filter, H160, H256, U256},
+    types::{Address, Chain, Filter, H160, H256, U256, U64},
     utils::format_units,
 };
 use ethers_etherscan::account::InternalTxQueryOption;
@@ -85,8 +85,11 @@ pub struct Token {
 #[poise::command(slash_command, guild_only = true)]
 pub async fn bribewatch(
     ctx: poise::Context<'_, (), Error>,
-    #[description = "Channel to post updates"] channel: ChannelId,
-    // #[description = "Fetch the total amount of bribes"]    total: bool,
+    #[description = "Channel to post updates. Defaults to current channel"] channel: Option<
+        ChannelId,
+    >,
+    #[description = "From what block do you want to start? It defaults back to the last block in the database"]
+    startblock: Option<U64>,
 ) -> Result<(), Error> {
     let rolesofuser = ctx.author_member().await.unwrap().permissions;
     if !rolesofuser.unwrap().administrator()
@@ -96,6 +99,8 @@ pub async fn bribewatch(
         ctx.say("You don't have enough rights to do this!").await?;
         return Ok(());
     }
+    let channel = channel.unwrap_or(ctx.channel_id());
+
     ctx.say(format!(
         "Starting the bot, check <#{}> for more info!",
         channel
@@ -127,6 +132,7 @@ pub async fn bribewatch(
         .get_internal_transactions(InternalTxQueryOption::ByAddress(address), None)
         .await?;
     let mut count = 0;
+
     'tx: for tx in internaltxvec {
         if tx.result_type == "create" && tx.contract_address.value().is_some() {
             let ad = tx.contract_address.value().unwrap();
@@ -135,6 +141,7 @@ pub async fn bribewatch(
             //println!("{:#?}", &tx);
             let trans = provider.get_transaction(tx.hash).await?.unwrap();
             let input = trans.input;
+
             let call = match CreateGaugeCall::decode(&input) {
                 Ok(val) => val,
                 Err(_) => {
@@ -176,9 +183,12 @@ pub async fn bribewatch(
         .await?;
 
     // Change the 1000 to go back further in time on use of the slash command.
-    // Now it fetches about 5 minutes of previous blocks to see if there are bribes.
-    let mut lastblock = provider.get_block_number().await? - 1000;
-    lastblock = 95947082.into();
+    // Now it fetches about 5 minutes of previous blocks to see if there are bribes if there is no custom block provided.
+    let mut lastblock = match startblock {
+        Some(val) => val,
+        None => provider.get_block_number().await? - 1000,
+    };
+
 
     'mainloop: loop {
         let currenttime = tokio::time::Instant::now();
@@ -255,25 +265,28 @@ pub async fn bribewatch(
             //     Err(_) => format!("0x{:X}", fromaddress),
             // };
 
-
             // This gets the first name related to the address, otherwise it uses the fromaddress.
-            let cleanedfrom = match DB.query("select userid from contact where address=$currentaddress").bind(("currentaddress", fromaddress)).await {
-                Ok(mut result) => {
-                    match result.take::<Vec<String>>((0, "userid")) {
-                        Ok(cleanresult ) => {
-                            if !cleanresult.is_empty() {
-                                cleanresult[0].clone()
-                            } else {
-                                format!("0x{:X}", fromaddress)
-                            }
-                        },
-                        Err(_) => {
+            let cleanedfrom = match DB
+                .query("select userid from contact where address=$currentaddress")
+                .bind(("currentaddress", fromaddress))
+                .await
+            {
+                Ok(mut result) => match result.take::<Vec<String>>((0, "userid")) {
+                    Ok(cleanresult) => {
+                        if !cleanresult.is_empty() {
+                            cleanresult[0].clone()
+                        } else {
                             format!("0x{:X}", fromaddress)
-                        },
+                        }
+                    }
+                    Err(_) => {
+                        format!("0x{:X}", fromaddress)
                     }
                 },
-                Err(_) => {format!("0x{:X}", fromaddress)},
-            };    
+                Err(_) => {
+                    format!("0x{:X}", fromaddress)
+                }
+            };
 
             let time = block.timestamp;
 
@@ -335,10 +348,11 @@ pub async fn bribewatch(
                                 .timestamp(utc)
                         })
                     })
-                    .await {
-                        Ok(val) => val,
-                        Err(_) => continue 'logs,
-                    };
+                    .await
+                {
+                    Ok(val) => val,
+                    Err(_) => continue 'logs,
+                };
             } else {
                 let mut readableamount = match format_units(amount, "ether") {
                     Ok(val) => val,
@@ -367,10 +381,11 @@ pub async fn bribewatch(
                                 .timestamp(utc)
                         })
                     })
-                    .await {
-                        Ok(val) => val,
-                        Err(_) => continue 'logs,
-                    };
+                    .await
+                {
+                    Ok(val) => val,
+                    Err(_) => continue 'logs,
+                };
             }
             // database entry
             let _querycreation: Bribe = match DB
@@ -386,10 +401,11 @@ pub async fn bribewatch(
                     block: logblocknumber.as_u64(),
                     decimals,
                 })
-                .await {
-                    Ok(val) => val,
-                    Err(_) => continue 'logs,
-                };
+                .await
+            {
+                Ok(val) => val,
+                Err(_) => continue 'logs,
+            };
             //dbg!(_querycreation);
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
